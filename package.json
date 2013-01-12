@@ -1,0 +1,14 @@
+{
+  "name": "midsockets",
+  "description": "middleware and routing for sockjs",
+  "version": "0.0.1",
+  "author": "Mason Blier <mason.blier@gmail.com>",
+  "dependencies": {
+    "debug":"latest",
+    "sockjs":"latest"
+  },
+  "devDependencies": {
+  },
+  "main": "index",
+  "engines": { "node": "*" }
+}
