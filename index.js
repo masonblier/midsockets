@@ -1,1 +1,1 @@
-module.exports = require('./lib/midsockets');
+module.exports = require('./lib/midsockets-server');
