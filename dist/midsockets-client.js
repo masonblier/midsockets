@@ -442,16 +442,17 @@ module.exports = (function(){
   }
 
   Events.prototype.on = function(key, fn) {
-    if (this._eventSubscribers===undefined) { this._eventSubscribers = []; }
+    if (this._eventSubscribers===undefined) { this._eventSubscribers = {}; }
     if (!this._eventSubscribers[key]) { this._eventSubscribers[key]=[]; }
     this._eventSubscribers[key].push(fn);
   };
 
-  Events.prototype.emit = function(key, data)  {
-    if (this._eventSubscribers===undefined) { this._eventSubscribers = []; }
+  Events.prototype.emit = function(key)  {
+    if (this._eventSubscribers===undefined) { this._eventSubscribers = {} }
     if (this._eventSubscribers[key]) {
+      var emitArgs = Array.prototype.slice.call(arguments, 1);
       this._eventSubscribers[key].forEach(function(fn){
-        fn(data);
+        fn.apply(this, emitArgs)
       });
     }
   };
@@ -654,13 +655,13 @@ module.exports = (function(){
     this.sock = new SockJS(options.url);
     this._buffer = [];  
     this.sock.onopen = function(){
-      console.info('midsockets.SockApp :: opened '+options.url);
+      console.info('midsockets.Apps.SockjsClient :: opened '+options.url);
       _this._buffer.forEach(function(message){
         _this.sock.send(message);
       });
       _this._buffer = [];
     };
-    this.sock.onclose = function(){ console.info('midsockets.SockApp :: closed '+options.url); };
+    this.sock.onclose = function(){ console.info('midsockets.Apps.SockjsClient :: closed '+options.url); };
     this.sock.onmessage = function(e){ 
       if (!e || e.type !== "message") { console.error("strange message",e); return; }
       try {
@@ -680,7 +681,7 @@ module.exports = (function(){
     return this;
   };
 
-  Utils.extends(SockjsClient,App);
+  Utils.extends(SockjsClient, App);
 
   return SockjsClient;
 
