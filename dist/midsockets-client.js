@@ -558,10 +558,13 @@ module.exports = (function(){
       route = route.slice(0, -1);
     }
     this.stack.push({route:route,handle:fn});
+
+    return this;
   };
 
   MiddlewarePrototype.last = function(fn){
     this._last = fn;
+    return this;
   };
 
   MiddlewarePrototype.handle = function(req,res,out){
@@ -590,7 +593,7 @@ module.exports = (function(){
       if (!layer) {
         if (out) return out(err);
         if (err) {
-          console.error(err.stack || err.toString());
+          throw err;
         } else {
           console.info("unresolved request",req);
         }
@@ -622,7 +625,6 @@ module.exports = (function(){
           next();
         }
       } catch (e) {
-        console.error("next err",e)
         next(e);
       }
     };
@@ -634,20 +636,20 @@ module.exports = (function(){
 })();
 });
 
-require.define("/socket-app-client.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('./utils');
-var App = require('./app');
+require.define("/apps/sockjs-client.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('../utils');
+var App = require('../app');
 
 /*
- * SocketApp client version
+ * SockjsClient
  */
 
 module.exports = (function(){
 
-  function SocketApp(options) {
+  function SockjsClient(options) {
     if (!options.url) { 
       throw new Error("midsockets requires a connection url"); 
     }
-    SocketApp.__super__.constructor.apply(this, arguments);
+    SockjsClient.__super__.constructor.apply(this, arguments);
     var _this = this;
     this.sock = new SockJS(options.url);
     this._buffer = [];  
@@ -678,9 +680,50 @@ module.exports = (function(){
     return this;
   };
 
-  Utils.extends(SocketApp,App);
+  Utils.extends(SockjsClient,App);
 
-  return SocketApp;
+  return SockjsClient;
+
+})();
+});
+
+require.define("/apps/requester.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('../utils');
+var App = require('../app');
+
+/*
+ * Requester app
+ */
+
+module.exports = (function(){
+
+  function Requester(){
+    var _this = this;
+    Requester.__super__.constructor.apply(this, arguments);
+    this.requestListeners = {};
+    _this._in.use('/response',function(req,res,next){
+      if (req.req_id in _this.requestListeners) {
+        _this.requestListeners[req.req_id].call(this,req.data);
+        delete _this.requestListeners[req.req_id];
+      }
+    });
+
+    return this;
+  }
+
+  Utils.extends(Requester, App);
+
+  Requester.prototype.request = function(route,data,fn){
+    if (typeof data == 'function') { 
+      fn = data; data = null;
+    }
+    var req_id = uuid.v1();
+    if (fn) {
+      this.requestListeners[req_id] = fn;
+    }
+    this._out({route:route,data:data,req_id:req_id},{});
+  };
+
+  return Requester;
 
 })();
 });
@@ -691,9 +734,11 @@ require.define("/midsockets-client.js",function(require,module,exports,__dirname
 
 window.midsockets = (function(){
 
+  // entry / builder function
+
   function midsockets(options) {
     if (typeof options == "string") { options = {url: options}; }
-    return new midsockets.SocketApp(options);
+    return new midsockets.Apps.SockjsClient(options);
   }
 
   // other exports
@@ -701,7 +746,13 @@ window.midsockets = (function(){
   midsockets.Events = require('./events');
   midsockets.Utils = require('./utils');
   midsockets.App = require('./app');
-  midsockets.SocketApp = require('./socket-app-client');
+
+  // app prefabs
+
+  midsockets.Apps = {
+    SockjsClient: require('./apps/sockjs-client'),
+    Requester: require('./apps/requester')
+  };
 
   return midsockets;
 
