@@ -489,6 +489,10 @@ Utils.extends = function(child, parent) {
   child.__super__ = parent.prototype;
   return child; 
 };
+
+Utils.parseCookie = function(cookie) {
+  
+};
 });
 
 require.define("/app.js",function(require,module,exports,__dirname,__filename,process,global){var Events = require('./events');
