@@ -5,7 +5,8 @@
   "author": "Mason Blier <mason.blier@gmail.com>",
   "dependencies": {
     "cookie":"latest",
-    "sockjs":"latest"
+    "sockjs":"latest",
+    "underscore":"latest"
   },
   "devDependencies": {
     "browserify":"latest"
