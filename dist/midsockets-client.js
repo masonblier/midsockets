@@ -447,6 +447,16 @@ module.exports = (function(){
     this._eventSubscribers[key].push(fn);
   };
 
+  Events.prototype.off = function(key, fn) {
+    if (this._eventSubscribers===undefined) { return; }
+    if (this._eventSubscribers[key]===undefined) { return; }
+    var removalIndex = this._eventSubscribers[key].indexOf(fn);
+    console.log("removing "+key+" :: "+removalIndex);
+    if (removalIndex >= 0) {
+      this._eventSubscribers[key].splice(removalIndex, 1);
+    }
+  };
+
   Events.prototype.emit = function(key)  {
     if (this._eventSubscribers===undefined) { this._eventSubscribers = {} }
     if (this._eventSubscribers[key]) {
@@ -2011,6 +2021,12 @@ module.exports = App.extend({
       this.requestListeners[req_id] = fn;
     }
     this._out({route:route,data:data,req_id:req_id},{});
+  },
+
+  subscribe: function(route,fn){
+    this._in.use(route,function(req,res){
+      fn(req.data);
+    });
   }
 
 });
