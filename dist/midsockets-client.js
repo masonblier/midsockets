@@ -1940,6 +1940,7 @@ module.exports = (function(){
 
 require.define("/lib/apps/sockjs-client.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('../utils');
 var App = require('../app');
+var Requester = require('./requester');
 
 /*
  * SockjsClient
@@ -1968,10 +1969,10 @@ module.exports = (function(){
       if (e.type !== "message") { throw new Error("midsockets.SockApp :: Strange Message of type: '"+e.type+"'"); }
       try {
         var parsed = JSON.parse(e.data);
-        _this._in(parsed, {});
       } catch(err) {
         throw new Error("midsockets.SockApp :: Could not parse message data: '"+e.data+"'");
       }
+      _this._in(parsed, {});
     };
     this._out.last(function(req,res,next){
       if (_this.sock.readyState===1) { // open
@@ -1985,6 +1986,12 @@ module.exports = (function(){
 
   Utils.extends(SockjsClient, App);
 
+  SockjsClient.prototype.requester = function(route){
+    var app = new Requester();
+    this.mount(route,app);
+    return app;
+  };
+
   return SockjsClient;
 
 })();
@@ -1997,7 +2004,7 @@ var App = require('../app');
  * Requester app
  */
 
-module.exports = App.extend({
+var Requester = module.exports = App.extend({
 
   initialize: function(){
     var _this = this;
@@ -2012,7 +2019,29 @@ module.exports = App.extend({
     return this;
   },
 
-  request: function(route,data,fn){
+  requester: function(route){
+    if (typeof route != 'string') {
+      route = "/";
+    }
+    var app = new Requester();
+    var _this = this;
+    this._in.use(route, function(req,res,next){
+      // wrap the res.out function to push the route on
+      var _resOutOld = res.out;
+      res.out = function(req,res) {
+        req.route = route + req.route;
+        _resOutOld.apply(this,arguments);
+      };
+      app._in(req,res);
+    });
+    app._out.last(function(req,res,next){
+      req.route = route + req.route;
+      _this._out(req,res);
+    });
+    return app;
+  },
+
+  get: function(route,data,fn){
     if (typeof data == 'function') { 
       fn = data; data = null;
     }
