@@ -451,7 +451,6 @@ module.exports = (function(){
     if (this._eventSubscribers===undefined) { return; }
     if (this._eventSubscribers[key]===undefined) { return; }
     var removalIndex = this._eventSubscribers[key].indexOf(fn);
-    console.log("removing "+key+" :: "+removalIndex);
     if (removalIndex >= 0) {
       this._eventSubscribers[key].splice(removalIndex, 1);
     }
@@ -1896,9 +1895,9 @@ module.exports = (function(){
       if (!layer) {
         if (out) return out(err);
         if (err) {
-          console.error("\x1B[31m"+err.message+"\n"+err.stack)
+          throw err;
         } else {
-          console.info("unresolved request",req);
+          throw new Error("unresolved midsockets request with route: "+req.route);
         }
         return;
       }
@@ -1965,12 +1964,13 @@ module.exports = (function(){
     };
     this.sock.onclose = function(){ console.info('midsockets.Apps.SockjsClient :: closed '+options.url); };
     this.sock.onmessage = function(e){ 
-      if (!e || e.type !== "message") { console.error("strange message",e); return; }
+      if (!e) { throw new Error("midsockets.SockApp :: Strange Message of 'undefined'"); }
+      if (e.type !== "message") { throw new Error("midsockets.SockApp :: Strange Message of type: '"+e.type+"'"); }
       try {
         var parsed = JSON.parse(e.data);
         _this._in(parsed, {});
       } catch(err) {
-        console.error("couldn't parse message",err)
+        throw new Error("midsockets.SockApp :: Could not parse message data: '"+e.data+"'");
       }
     };
     this._out.last(function(req,res,next){
