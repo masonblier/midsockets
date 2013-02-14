@@ -4,12 +4,7 @@ fs = require 'fs'
 {spawn} = require 'child_process'
 
 run_proc = (command, args, callback) ->
-  child = spawn command, args
-  child.stderr.on 'data', (data) ->
-    process.stderr.write data.toString()
-  child.stdout.on 'data', (data) ->
-    process.stdout.write data.toString()
-  child.on 'exit', (code) ->
+  spawn(command, args, {stdio: "inherit"}).on 'exit', (code) ->
     callback() if code is 0 and callback?
 
 browserify = (callback) ->
@@ -18,4 +13,8 @@ browserify = (callback) ->
 build = () ->
   browserify()
 
+test = (callback) ->
+  run_proc './node_modules/.bin/vows', ['--spec','spec/spec-runner.js'], callback
+
 task 'build', "Build all js files", -> build()
+task 'test', "Run all tests", -> test()

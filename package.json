@@ -9,7 +9,9 @@
     "underscore":"latest"
   },
   "devDependencies": {
-    "browserify":"latest"
+    "browserify":"latest",
+    "vows":"latest",
+    "coffee-script":"latest"
   },
   "main": "index",
   "engines": { "node": "*" }
