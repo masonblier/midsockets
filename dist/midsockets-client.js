@@ -503,14 +503,46 @@ Utils.parseCookie = function(cookie) {
   
 };
 
-Utils.logger = 
+/*
+ * Logging
+ */
+
+var colorcodes = {
+  'black':          '30',
+  'red':            '31',
+  'green':          '32',
+  'yellow':         '33',
+  'blue':           '34',
+  'magenta':        '35',
+  'cyan':           '36',
+  'white':          '37',
+  'reset':          '39',
+  'bright black':   '90',
+  'bright red':     '91',
+  'bright green':   '92',
+  'bright yellow':  '93',
+  'bright blue':    '94',
+  'bright magenta': '95',
+  'bright cya':     '96',
+  'bright white':   '97',
+  'reset':          '99'
+};
+
+Utils.logger = function(code){
+  if (code && /^(?:[a-z ]+|[A-Z ]+)$/.test(code)){ code = colorcodes[code.toLowerCase()]; }
+  if (!code) { code = '90'; }
+  return function(){
+    process.stdout.write("\x1b["+code+"m-- ");
+    console.log.apply(null,arguments);
+    process.stdout.write("\x1b[0m");
+  };
+};
+
+Utils.log = 
   (process.stdout) ? 
-    function(){
-      process.stdout.write("\x1b[90m-- ");
-      console.log.apply(null,arguments);
-      process.stdout.write("\x1b[0m");
-    }
+    Utils.logger()
   : console.log;
+
 });
 
 require.define("/lib/app.js",function(require,module,exports,__dirname,__filename,process,global){var inheritance = require('./inheritance');
@@ -551,13 +583,15 @@ module.exports = (function(){
       // wrap the res.out function to push the route on
       var _resOutOld = res.out;
       res.out = function(req,res) {
-        req.route = route + req.route;
+        var subroute = req.route.replace(/^[\/]+/,''); // strip leading slashes
+        req.route = route + subroute;
         _resOutOld.apply(this,arguments);
       };
       app._in(req,res);
     });
     app._out.last(function(req,res,next){
-      req.route = route + req.route;
+      var subroute = req.route.replace(/^[\/]+/,''); // strip leading slashes
+      req.route = route + subroute;
       _this._out(req,res);
     });
     return this;
@@ -1956,6 +1990,37 @@ module.exports = (function(){
 require.define("/lib/promises/request_client.js",function(require,module,exports,__dirname,__filename,process,global){var RequestPromise = require('./request_promise')
 
 /*
+ * RequestGhost class
+ * for breaking up requesters on subroutes
+ */
+
+var RequestGhost = (function(){
+
+  function RequestGhost(route, request_client){
+    this.request_client = request_client;
+    // ensure trailing slash
+    route = (route.charAt(route.length-1)=='/'?route:route+'/');
+    this.route = route;
+  };
+
+  RequestGhost.prototype.get = function(route){
+    route = route.replace(/^[\/]+/,''); // strip leading slashes
+    return this.request_client.get(this.route+route);
+  };
+  RequestGhost.prototype.post = function(route,data){
+    route = route.replace(/^[\/]+/,''); // strip leading slashes
+    return this.request_client.post(this.route+route,data);
+  };
+  RequestGhost.prototype.requester = function(route){
+    route = route.replace(/^[\/]+/,''); // strip leading slashes
+    return this.request_client.requester(this.route+route);
+  };
+
+  return RequestGhost;
+
+})();
+
+/*
  * RequestClient class
  */
 
@@ -2002,6 +2067,10 @@ module.exports = (function(){
     return rp;
   };
 
+  RequestClient.prototype.requester = function(route){
+    return new RequestGhost(route,this);
+  };
+
   return RequestClient;
 
 })();
@@ -2015,7 +2084,7 @@ module.exports = (function(){
 
   var eventedMiddleware = function(_this){
     return function(req,res,next){
-      if (req.eventName) {
+      if (typeof req.eventName == 'string') {
         var emitArgs = req.data.args;
         emitArgs.unshift(req.eventName);
         _this.emit.apply(_this,emitArgs);
@@ -2069,6 +2138,10 @@ module.exports = (function(){
    * @returns key object for future reference
    */
   RequestPromise.prototype.on = function(eventName,listener){
+    if (typeof eventName == 'function'){
+      listener = eventName;
+      eventName = "";
+    }
     if (!this._eventSubscribers[eventName]) { this._eventSubscribers[eventName]=[]; }
     var listSize = this._eventSubscribers[eventName].push(function(){
       listener.apply(this,arguments);
@@ -2146,9 +2219,9 @@ module.exports = (function(){
   Utils.extends(SockjsClient, App);
 
   SockjsClient.prototype.requester = function(route){
-    var app = new Requester();
+    var app = new App();
     this.mount(route,app);
-    return app;
+    return new midsockets.RequestClient({app: app});
   };
 
   return SockjsClient;
