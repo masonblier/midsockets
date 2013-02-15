@@ -40,7 +40,7 @@
       <p>Next, create an endpoint which allows sending a message to the rest of the chatters. Here, we loop through all the listener functions we created and call them.</p>
       <pre>
         <code>
-  api.on("/send",function(req,res){
+  api.on("/chat/send",function(req,res){
     _listeners.forEach(function(listener){
       listener({body: req.data.body});
     });
