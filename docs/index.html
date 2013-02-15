@@ -25,7 +25,7 @@
       <pre>
         <code>
   var api = new midsockets.Router();
-  midsockets("/midsockets").mount(api);
+  midsockets("/midsockets").mount("/chat",api);
         </code>
       </pre>
 
@@ -53,7 +53,7 @@
       <pre>
         <code>
   var _listeners = [];
-  api.on("/subscription",function(req,res){
+  api.on("/chat/subscription",function(req,res){
     var subscription = function(obj){
       res.emit("message",obj);
     };
@@ -72,11 +72,19 @@
         </code>
       </pre>
 
+      <p>You can create a child requester at a given route if you with to decouple the absolute routes from the implementation.</p>
+
+      <pre>
+        <code>
+  var chat = Api.requester("/chat");
+        </code>
+      </pre>
+
       <p>A get request returns a promise, the two most important functions of which are done() and on(). To get our chat subscription, we would .get() it from the RequestClient and listen to events emited on it until it is resolved.</p>
 
       <pre>
         <code>
-  Api.get("/subscription").on("message",function(obj){
+  chat.get("/subscription").on("message",function(obj){
     console.log("someone said: "+obj.body);
   }).done(function(){
     console.log("chat has closed");
@@ -89,7 +97,7 @@
       <pre>
         <code>
   function sendMessage(text){
-    Api.post("/send",{body:text}).done(function(){
+    chat.post("/send",{body:text}).done(function(){
       console.log("message "+text+" has been sent");
     });
   };
