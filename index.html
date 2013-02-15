@@ -19,13 +19,13 @@
 
       <h2>creating a chat app:</h2>
 
-      <h3>server:</h3>
+      <h3>server</h3>
 
       <p>Create a router which will respond to incoming routes. Mount this router on midsockets.</p>
       <pre>
         <code>
   var api = new midsockets.Router();
-  var sockApp = midsockets("/midsockets").mount(api);
+  midsockets("/midsockets").mount(api);
         </code>
       </pre>
 
