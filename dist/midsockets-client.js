@@ -584,14 +584,14 @@ module.exports = (function(){
       var _resOutOld = res.out;
       res.out = function(req,res) {
         var subroute = req.route.replace(/^[\/]+/,''); // strip leading slashes
-        req.route = route + subroute;
+        req.route = route + (route.charAt(route.length-1)=='/' ? "" : "/") + subroute;
         _resOutOld.apply(this,arguments);
       };
       app._in(req,res);
     });
     app._out.last(function(req,res,next){
       var subroute = req.route.replace(/^[\/]+/,''); // strip leading slashes
-      req.route = route + subroute;
+      req.route = route + (route.charAt(route.length-1)=='/' ? "" : "/") + subroute;
       _this._out(req,res);
     });
     return this;
@@ -2218,10 +2218,9 @@ module.exports = (function(){
 
   Utils.extends(SockjsClient, App);
 
-  SockjsClient.prototype.requester = function(route){
-    var app = new App();
-    this.mount(route,app);
-    return new midsockets.RequestClient({app: app});
+  SockjsClient.prototype.requestClient = function(){
+    if (arguments.length > 0) { throw new Error("Arguments are not supported for SockjsClient#requestClient"); }
+    return new midsockets.RequestClient({app: this});
   };
 
   return SockjsClient;
