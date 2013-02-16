@@ -25,39 +25,39 @@
       <pre>
         <code>
   var api = new midsockets.Router();
-  midsockets("/midsockets").mount("/chat",api);
+  var sockapp = midsockets("/midsockets");
+  sockapp.mount("/chat",api);
         </code>
       </pre>
 
       <p>You will need to attach it to an HTTP server.</p>
       <pre>
         <code>
-  var server = http.createServer(app);
-  sockApp.listen(server);
+  var server = http.createServer(/* e.g., express or connect app */);
+  sockapp.listen(server);
         </code>
       </pre>
 
-      <p>Next, create an endpoint which allows sending a message to the rest of the chatters. Here, we loop through all the listener functions we created and call them.</p>
+      
+
+      <p>The router can listen for incoming requests. The route passed to on can include any levels of path matches, as well as /:param/ matchers. On most requests, you would return a result by calling res.resolve(). We do not on this subscription route. An unresolved-request will stay open, and events can be emitted on it until it is closed.</p>
+      <p>We can create an instance of midsockets.Events() for our chat room message pump, as it has a pretty good implementation of events and works with res.listenTo.</p>
       <pre>
         <code>
-  api.on("/chat/send",function(req,res){
-    _listeners.forEach(function(listener){
-      listener({body: req.data.body});
-    });
-    res.resolve();
+  var chat_events = new midsockets.Events();
+
+  api.on("/chat/subscription",function(req,res){
+    res.listenTo(chat_events,"message",{as: "message"});
   });
         </code>
       </pre>
 
-      <p>To create an endpoint which provides pushing data to the client after time, we can postpone resolving the request. An unresolved-request will stay open, and events can be emitted on it until it is closed.</p>
+      <p>Our /send endpoint is easy. You can see the data passed to RequestClient#post(...) is attached to req.data.</p>
       <pre>
         <code>
-  var _listeners = [];
-  api.on("/chat/subscription",function(req,res){
-    var subscription = function(obj){
-      res.emit("message",obj);
-    };
-    _listeners.push(subscription);
+  api.on("/chat/send",function(req,res){
+    chat_events.emit("message",{body: req.data.body});
+    res.resolve();
   });
         </code>
       </pre>
@@ -72,7 +72,7 @@
         </code>
       </pre>
 
-      <p>You can create a child requester at a given route if you with to decouple the absolute routes from the implementation.</p>
+      <p>You can create a child RequestGhost (shim for RequestClient) by calling requester() on a RequestClient or RequestGhost. This is useful for removing absolute paths from your implementation. For example, you could pass the result of Api.requester("/chat/room_name") to a ChatRoom class in a more sophisticated application.</p>
 
       <pre>
         <code>
@@ -80,7 +80,7 @@
         </code>
       </pre>
 
-      <p>A get request returns a promise, the two most important functions of which are done() and on(). To get our chat subscription, we would .get() it from the RequestClient and listen to events emited on it until it is resolved.</p>
+      <p>A get() returns a promise, the two most important functions of which are RequestPromise#done(success_callback,error_callback) and RequestPromise#on([event_name],callback). To get our chat subscription, we would .get() it from the RequestClient and listen to events emited on it until it is resolved.</p>
 
       <pre>
         <code>
@@ -96,7 +96,8 @@
 
       <pre>
         <code>
-  function sendMessage(text){
+
+  window.sendMessage = function sendMessage(text){
     chat.post("/send",{body:text}).done(function(){
       console.log("message "+text+" has been sent");
     });
