@@ -3,6 +3,11 @@ midsockets
 
 middleware and routing for sockjs
 
+Documentation
+-------
+
+http://masonblier.github.com/midsockets/
+
 License
 -------
 
