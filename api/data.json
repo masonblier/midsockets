@@ -1,0 +1,111 @@
+{
+    "project": {
+        "name": "midsockets",
+        "description": "Real time streaming requests in a promises api.",
+        "version": "0.1.3",
+        "url": "https://github.com/masonblier/midsockets",
+        "logo": "../logo.png"
+    },
+    "files": {
+        "../../midsockets/lib/promises/deferred_response.js": {
+            "name": "../../midsockets/lib/promises/deferred_response.js",
+            "modules": {},
+            "classes": {
+                "DeferredResponse": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/midsockets-server.js": {
+            "name": "../../midsockets/lib/midsockets-server.js",
+            "modules": {
+                "midsockets": 1
+            },
+            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/sockjs-server.js": {
+            "name": "../../midsockets/lib/sockjs-server.js",
+            "modules": {},
+            "classes": {
+                "SockjsServer": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        }
+    },
+    "modules": {
+        "midsockets": {
+            "name": "midsockets",
+            "submodules": {},
+            "classes": {
+                "DeferredResponse": 1,
+                "SockjsServer": 1
+            },
+            "fors": {},
+            "namespaces": {},
+            "tag": "main",
+            "file": "../../midsockets/lib/sockjs-server.js",
+            "line": 9,
+            "description": "midsockets - real time streaming request promises",
+            "itemtype": "main"
+        }
+    },
+    "classes": {
+        "DeferredResponse": {
+            "name": "DeferredResponse",
+            "shortname": "DeferredResponse",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "file": "../../midsockets/lib/promises/deferred_response.js",
+            "line": 5,
+            "description": "The class of the object passed as `res` to Router event handlers. When the\ndeferredResponse is resolved, the data is sent to the corresponding RequestPromise\non the client.",
+            "is_constructor": 1
+        },
+        "SockjsServer": {
+            "name": "SockjsServer",
+            "shortname": "SockjsServer",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/sockjs-server.js",
+            "line": 9,
+            "description": "Provides an App which listens to a sockjs instance\nand can attach to an http.Server instance. This is the object\nreturn by midsockets() in nodejs. You can mount other App instances,\nsuch as a Router.",
+            "is_constructor": 1,
+            "params": [
+                {
+                    "name": "options.sockjs_url",
+                    "description": "The url of the sockjs client, for use in an embedded iframe if necessary",
+                    "optional": true
+                }
+            ]
+        }
+    },
+    "classitems": [
+        {
+            "file": "../../midsockets/lib/sockjs-server.js",
+            "line": 30,
+            "description": "Listens to the passed sockjs instance for incoming requests",
+            "itemtype": "method",
+            "name": "",
+            "params": [
+                {
+                    "name": "socksrv",
+                    "description": "the sockjs instance"
+                }
+            ],
+            "class": "SockjsServer",
+            "module": "midsockets"
+        }
+    ],
+    "warnings": []
+}

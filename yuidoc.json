@@ -1,0 +1,11 @@
+{
+    "name": "midsockets",
+    "description": "Real time streaming requests in a promises api.",
+    "version": "0.1.3",
+    "url": "https://github.com/masonblier/midsockets",
+    "logo": "http://masonblier.github.com/midsockets/logo.png",
+    "options": {
+        "paths": ["../../midsockets/lib"],
+        "outdir": "./api"
+    }
+}
