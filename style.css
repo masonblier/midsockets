@@ -3,6 +3,10 @@ body {
   font: 14px/1.6 "Helvetica Neue", Helvetica, arial, sans-serif;
 }
 
+a {
+  text-decoration: none;
+}
+
 #wrapper {
   padding: 0 100px;
 }
