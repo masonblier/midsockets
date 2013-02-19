@@ -432,48 +432,51 @@ process.binding = function (name) {
 
 });
 
-require.define("/lib/events.js",function(require,module,exports,__dirname,__filename,process,global){/*
- * events class
- */
+require.define("/lib/events.js",function(require,module,exports,__dirname,__filename,process,global){/**
+  A small implementation of an Event manager. Other classes can extend this without
+  having to call the Events() constructor.
 
-module.exports = (function(){
+  @class Events
+  @constructor
+**/
 
-  function Events() {
+function Events() {
+};
+
+module.exports = Events;
+
+Events.prototype.on = function(key, fn) {
+  if (this._eventSubscribers===undefined) { this._eventSubscribers = {}; }
+  if (!this._eventSubscribers[key]) { this._eventSubscribers[key]=[]; }
+  this._eventSubscribers[key].push(fn);
+};
+
+Events.prototype.off = function(key, fn) {
+  if (this._eventSubscribers===undefined) { return; }
+  if (this._eventSubscribers[key]===undefined) { return; }
+  var removalIndex = this._eventSubscribers[key].indexOf(fn);
+  if (removalIndex >= 0) {
+    this._eventSubscribers[key].splice(removalIndex, 1);
   }
+};
 
-  Events.prototype.on = function(key, fn) {
-    if (this._eventSubscribers===undefined) { this._eventSubscribers = {}; }
-    if (!this._eventSubscribers[key]) { this._eventSubscribers[key]=[]; }
-    this._eventSubscribers[key].push(fn);
-  };
-
-  Events.prototype.off = function(key, fn) {
-    if (this._eventSubscribers===undefined) { return; }
-    if (this._eventSubscribers[key]===undefined) { return; }
-    var removalIndex = this._eventSubscribers[key].indexOf(fn);
-    if (removalIndex >= 0) {
-      this._eventSubscribers[key].splice(removalIndex, 1);
-    }
-  };
-
-  Events.prototype.emit = function(key)  {
-    if (this._eventSubscribers===undefined) { this._eventSubscribers = {} }
-    if (this._eventSubscribers[key]) {
-      var emitArgs = Array.prototype.slice.call(arguments, 1);
-      this._eventSubscribers[key].forEach(function(fn){
-        fn.apply(this, emitArgs)
-      });
-    }
-  };
-
-  return Events;
-
-})();
+Events.prototype.emit = function(key)  {
+  if (this._eventSubscribers===undefined) { this._eventSubscribers = {} }
+  if (this._eventSubscribers[key]) {
+    var emitArgs = Array.prototype.slice.call(arguments, 1);
+    this._eventSubscribers[key].forEach(function(fn){
+      fn.apply(this, emitArgs)
+    });
+  }
+};
 });
 
-require.define("/lib/utils.js",function(require,module,exports,__dirname,__filename,process,global){/*
- * Utils functions
- */
+require.define("/lib/utils.js",function(require,module,exports,__dirname,__filename,process,global){/**
+  Utility functions
+
+  @class Utils
+  @static
+**/
 
 var Utils = module.exports = {};
 
@@ -497,10 +500,6 @@ Utils.extends = function(child, parent) {
   child.prototype = new ctor();
   child.__super__ = parent.prototype;
   return child; 
-};
-
-Utils.parseCookie = function(cookie) {
-  
 };
 
 /*
@@ -547,72 +546,80 @@ Utils.log =
 
 require.define("/lib/app.js",function(require,module,exports,__dirname,__filename,process,global){var inheritance = require('./inheritance');
 var Events = require('./events');
-var MiddlewarePrototype = require('./middleware');
+var MiddlewarePrototype = require('./middleware_prototype');
 var Utils = require('./utils');
 
-/*
- * app base class
- */
+/**
+  @module midsockets
+**/
 
-module.exports = (function(){
+/**
+  App is the base class of different things you can connect into your midsockets
+  chain. 
 
-  function App(options){
-    var _this = this;
-    this._in = function(req,res){ _this._in.handle(req,res); };
-    this._out = function(req,res){ _this._out.handle(req,res); };
-    this._in.stack = [];
-    this._out.stack = [];
-    Utils.merge(this._in, MiddlewarePrototype);
-    Utils.merge(this._out, MiddlewarePrototype);
-    this.initialize.apply(this,arguments);
-    return this;
+  @class App
+  @constructor
+**/
+
+function App(){
+  var _this = this;
+  this._in = function(req,res){ _this._in.handle(req,res); };
+  this._out = function(req,res){ _this._out.handle(req,res); };
+  this._in.stack = [];
+  this._out.stack = [];
+  Utils.merge(this._in, MiddlewarePrototype);
+  Utils.merge(this._out, MiddlewarePrototype);
+  this.initialize.apply(this,arguments);
+  return this;
+}
+
+module.exports = App;
+
+Utils.extends(App, Events);
+App.extend = inheritance.extend;
+
+App.prototype.initialize = function(){};
+
+App.prototype.mount = function(route, app){
+  if (typeof route != 'string') {
+    app = route;
+    route = "/";
   }
-
-  Utils.extends(App, Events);
-  App.extend = inheritance.extend;
-
-  App.prototype.initialize = function(){};
-
-  App.prototype.mount = function(route, app){
-    if (typeof route != 'string') {
-      app = route;
-      route = "/";
-    }
-    var _this = this;
-    this._in.use(route, function(req,res,next){
-      // wrap the res.out function to push the route on
-      var _resOutOld = res.out;
-      res.out = function(req,res) {
-        var subroute = req.route.replace(/^[\/]+/,''); // strip leading slashes
-        req.route = route + (route.charAt(route.length-1)=='/' ? "" : "/") + subroute;
-        _resOutOld.apply(this,arguments);
-      };
-      app._in(req,res);
-    });
-    app._out.last(function(req,res,next){
+  var _this = this;
+  this._in.use(route, function(req,res,next){
+    // wrap the res.out function to push the route on
+    var _resOutOld = res.out;
+    res.out = function(req,res) {
       var subroute = req.route.replace(/^[\/]+/,''); // strip leading slashes
       req.route = route + (route.charAt(route.length-1)=='/' ? "" : "/") + subroute;
-      _this._out(req,res);
-    });
-    return this;
-  };
+      _resOutOld.apply(this,arguments);
+    };
+    app._in(req,res);
+  });
+  app._out.last(function(req,res,next){
+    var subroute = req.route.replace(/^[\/]+/,''); // strip leading slashes
+    req.route = route + (route.charAt(route.length-1)=='/' ? "" : "/") + subroute;
+    _this._out(req,res);
+  });
+  return this;
+};
 
-  App.prototype.child = function(route) {
-    var app = new App();
-    this.mount(route,app);
-    return app;
-  };
-
-  return App;
-  
-})();
+App.prototype.child = function(route) {
+  var app = new App();
+  this.mount(route,app);
+  return app;
+};
 });
 
 require.define("/lib/inheritance.js",function(require,module,exports,__dirname,__filename,process,global){var _ = require('underscore');
 
-/*
- * Utilities for backbone style inheritance
- */
+/**
+  Methods for implementing backbone style inheritance.
+
+  @class Inheritance
+  @static
+  @constructor
+**/
 
 var Inheritance = module.exports = {};
 
@@ -1891,113 +1898,121 @@ require.define("/node_modules/underscore/underscore.js",function(require,module,
 
 });
 
-require.define("/lib/middleware.js",function(require,module,exports,__dirname,__filename,process,global){/*
- * middleware app prototype
- */
+require.define("/lib/middleware_prototype.js",function(require,module,exports,__dirname,__filename,process,global){/**
+  This becomes the prototype of every middleware function.
+  This pattern was taken from the connect middleware.
 
-module.exports = (function(){
+  @class MiddlewarePrototype
+  @static
+**/
 
-  MiddlewarePrototype = {}
+var MiddlewarePrototype = module.exports = {}
 
-  MiddlewarePrototype.use = function(route,fn){
-    if ('string' != typeof route) {
-      fn = route;
-      route = '/';
+MiddlewarePrototype.use = function(route,fn){
+  if ('string' != typeof route) {
+    fn = route;
+    route = '/';
 
+  }
+  if ('/' == route[route.length - 1]) {
+    route = route.slice(0, -1);
+  }
+  this.stack.push({route:route,handle:fn});
+
+  return this;
+};
+
+MiddlewarePrototype.last = function(fn){
+  this._last = fn;
+  return this;
+};
+
+MiddlewarePrototype.handle = function(req,res,out){
+  var stack = this.stack
+    , _last = this._last
+    , removed = ''
+    , index = 0;
+
+  function next(err,msg) {
+    var path, layer, c;
+
+    req.route = removed + req.route;
+    req.originalRoute = req.originalRoute || req.route;
+    removed = '';
+
+    var layer = stack[index++];
+
+    if (_last && !layer) {
+      layer = {
+        route: '/',
+        handle: _last
+      };
+      _last = undefined;
     }
-    if ('/' == route[route.length - 1]) {
-      route = route.slice(0, -1);
+
+    if (!layer) {
+      if (out) return out(err);
+      if (err) {
+        throw err;
+      } else {
+        throw new Error("unresolved midsockets request with route: "+req.route);
+      }
+      return;
     }
-    this.stack.push({route:route,handle:fn});
 
-    return this;
-  };
+    try {
+      path = req.route || '/';
 
-  MiddlewarePrototype.last = function(fn){
-    this._last = fn;
-    return this;
-  };
-
-  MiddlewarePrototype.handle = function(req,res,out){
-    var stack = this.stack
-      , _last = this._last
-      , removed = ''
-      , index = 0;
-
-    function next(err,msg) {
-      var path, layer, c;
-
-      req.route = removed + req.route;
-      req.originalRoute = req.originalRoute || req.route;
-      removed = '';
-
-      var layer = stack[index++];
-
-      if (_last && !layer) {
-        layer = {
-          route: '/',
-          handle: _last
-        };
-        _last = undefined;
+      if (0 != path.toLowerCase().indexOf(layer.route.toLowerCase())) return next(err);
+      if (layer.route.length > 1) {
+        c = path[layer.route.length];
+        if (c && '/' != c && '.' != c) return next(err);
+    
+        removed = layer.route;
+        req.route = req.route.substr(removed.length);
       }
 
-      if (!layer) {
-        if (out) return out(err);
-        if (err) {
-          throw err;
+      var arity = layer.handle.length;
+      if (err) {
+        if (arity === 4) {
+          layer.handle(err, req, res, next);
         } else {
-          throw new Error("unresolved midsockets request with route: "+req.route);
+          next(err);
         }
-        return;
+      } else if (arity < 4) {
+        layer.handle(req, res, next);
+      } else {
+        next();
       }
-
-      try {
-        path = req.route || '/';
-
-        if (0 != path.toLowerCase().indexOf(layer.route.toLowerCase())) return next(err);
-        if (layer.route.length > 1) {
-          c = path[layer.route.length];
-          if (c && '/' != c && '.' != c) return next(err);
-      
-          removed = layer.route;
-          req.route = req.route.substr(removed.length);
-        }
-
-        var arity = layer.handle.length;
-        if (err) {
-          if (arity === 4) {
-            layer.handle(err, req, res, next);
-          } else {
-            next(err);
-          }
-        } else if (arity < 4) {
-          layer.handle(req, res, next);
-        } else {
-          next();
-        }
-      } catch (e) {
-        next(e);
-      }
-    };
-    next();
+    } catch (e) {
+      next(e);
+    }
   };
-
-  return MiddlewarePrototype;
-
-})();
+  next();
+};
 });
 
 require.define("/lib/promises/request_client.js",function(require,module,exports,__dirname,__filename,process,global){var RequestPromise = require('./request_promise')
 
-/*
- * RequestGhost class
- * for breaking up requesters on subroutes
- */
+/**
+  @module midsockets
+  @submodule Promises
+**/
+
+/**
+  Implements the same request methods as RequestClient. By pasing a route parameter,
+  this object will map requested routes as relative to the passed route.
+
+  @class RequestGhost
+  @constructor
+  @param {String}       route   The route to mount onto
+  @param {RequestGhost} parent  The parent RequestGhost or RequestClient to send requests to
+**/
 
 var RequestGhost = (function(){
 
-  function RequestGhost(route, request_client){
-    this.request_client = request_client;
+  function RequestGhost(route, parent){
+    this.parent = parent;
     // ensure trailing slash
     route = (route.charAt(route.length-1)=='/'?route:route+'/');
     this.route = route;
@@ -2005,24 +2020,30 @@ var RequestGhost = (function(){
 
   RequestGhost.prototype.get = function(route){
     route = route.replace(/^[\/]+/,''); // strip leading slashes
-    return this.request_client.get(this.route+route);
+    return this.parent.get(this.route+route);
   };
   RequestGhost.prototype.post = function(route,data){
     route = route.replace(/^[\/]+/,''); // strip leading slashes
-    return this.request_client.post(this.route+route,data);
+    return this.parent.post(this.route+route,data);
   };
   RequestGhost.prototype.requester = function(route){
     route = route.replace(/^[\/]+/,''); // strip leading slashes
-    return this.request_client.requester(this.route+route);
+    return this.parent.requester(this.route+route);
   };
 
   return RequestGhost;
 
 })();
 
-/*
- * RequestClient class
- */
+/**
+  Implements the same request methods as RequestClient. By pasing a route parameter,
+  this object will map requested routes as relative to the passed route.
+
+  @class RequestClient
+  @constructor
+  @param {Object} options
+  @param {App}    options.app The parent app to listen on
+**/
 
 module.exports = (function(){
   
@@ -2076,220 +2097,160 @@ module.exports = (function(){
 })();
 });
 
-require.define("/lib/promises/request_promise.js",function(require,module,exports,__dirname,__filename,process,global){/*
- * RequestPromise class
- */
+require.define("/lib/promises/request_promise.js",function(require,module,exports,__dirname,__filename,process,global){/**
+  @module midsockets
+  @submodule Promises
+**/
 
-module.exports = (function(){
-
-  var eventedMiddleware = function(_this){
-    return function(req,res,next){
-      if (typeof req.eventName == 'string') {
-        var emitArgs = req.data.args;
-        emitArgs.unshift(req.eventName);
-        _this.emit.apply(_this,emitArgs);
-      } else if (req.err) {
-        _this._promise.err = req.err;
-        _this._promise.rejecteds.forEach(function(rejected){
-          rejected(_this._promise.err);
-        });
-      } else {
-        _this._promise.val = req.data;
-        _this._promise.fulfilled = true;
-        _this._promise.fulfilleds.forEach(function(fulfilled){
-          fulfilled(_this._promise.val);
-        }); 
-      }
-    };
-  };
-
-  /*
-   * constructor
-   */
-  function RequestPromise() {
-    this._eventSubscribers = {};
-    this._promise = {fulfilleds: [], rejecteds: []};
-    this.handle = eventedMiddleware(this);
-  }
-
-  /*
-   * promises/a methods are emitted on request termination.
-   */
-  RequestPromise.prototype.then = function(fulfilled,rejected) {
-    throw new Error("not yet implemented");
-    return this;
-  };
-  RequestPromise.prototype.done = function(fulfilled,rejected) {
-    if (!this._promise.done) {
-      if (fulfilled) { this._promise.fulfilleds.push(fulfilled); }
-      if (rejected) { this._promise.rejecteds.push(rejected); }
+var eventedMiddleware = function(_this){
+  return function(req,res,next){
+    if (typeof req.eventName == 'string') {
+      var emitArgs = req.data.args;
+      emitArgs.unshift(req.eventName);
+      _this.emit.apply(_this,emitArgs);
+    } else if (req.err) {
+      _this._promise.err = req.err;
+      _this._promise.rejecteds.forEach(function(rejected){
+        rejected(_this._promise.err);
+      });
     } else {
-      if (this._promise.fulfilled && fulfilled) {
-        fulfilled(this._promise.val);
-      } else if (rejected) {
-        rejected(this._promise.err);
-      }
-    }
-    return this;
-  };
-
-  /*
-   * route based events
-   * @returns key object for future reference
-   */
-  RequestPromise.prototype.on = function(eventName,listener){
-    if (typeof eventName == 'function'){
-      listener = eventName;
-      eventName = "";
-    }
-    if (!this._eventSubscribers[eventName]) { this._eventSubscribers[eventName]=[]; }
-    var listSize = this._eventSubscribers[eventName].push(function(){
-      listener.apply(this,arguments);
-    });
-    return {eventName:eventName,offset:listSize-1};
-  };
-  RequestPromise.prototype.off = function(key){
-    if (key && this._eventSubscribers[key.eventName]) {
-      // deleting is intentional to leave gaps in the array,
-      // as splicing causes the offsets to change
-      delete this._eventSubscribers[key.eventName][key.offset];
+      _this._promise.val = req.data;
+      _this._promise.fulfilled = true;
+      _this._promise.fulfilleds.forEach(function(fulfilled){
+        fulfilled(_this._promise.val);
+      }); 
     }
   };
-  RequestPromise.prototype.emit = function(eventName){
-    var _this = this;
-    if (this._eventSubscribers[eventName]) {
-      var emitArgs = Array.prototype.slice.call(arguments, 1);
-      this._eventSubscribers[eventName].forEach(function(fn){
-        fn.apply(_this, emitArgs)
-      });
-    }
-  };
+};
 
-  return RequestPromise;
+/**
+  A promise-like object which is returned by requests made
+  by a RequestClient. If the response is not resolved immediately,
+  the server may emit events back over midsockets to this object.
 
-})();
-});
+  @class RequestPromise
+  @constructor
+**/
 
-require.define("/lib/apps/sockjs-client.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('../utils');
-var App = require('../app');
-var Requester = require('./requester');
+function RequestPromise() {
+  this._eventSubscribers = {};
+  this._promise = {fulfilleds: [], rejecteds: []};
+  this.handle = eventedMiddleware(this);
+}
 
-/*
- * SockjsClient
+module.exports = RequestPromise;
+
+/*!
+ * promises/a methods are emitted on request termination.
  */
-
-module.exports = (function(){
-
-  function SockjsClient(options) {
-    if (!options.url) { 
-      throw new Error("midsockets requires a connection url"); 
+RequestPromise.prototype.then = function(fulfilled,rejected) {
+  throw new Error("not yet implemented");
+  return this;
+};
+RequestPromise.prototype.done = function(fulfilled,rejected) {
+  if (!this._promise.done) {
+    if (fulfilled) { this._promise.fulfilleds.push(fulfilled); }
+    if (rejected) { this._promise.rejecteds.push(rejected); }
+  } else {
+    if (this._promise.fulfilled && fulfilled) {
+      fulfilled(this._promise.val);
+    } else if (rejected) {
+      rejected(this._promise.err);
     }
-    SockjsClient.__super__.constructor.apply(this, arguments);
-    var _this = this;
-    this.sock = new SockJS(options.url);
-    this._buffer = [];  
-    this.sock.onopen = function(){
-      console.info('midsockets.Apps.SockjsClient :: opened '+options.url);
-      _this._buffer.forEach(function(message){
-        _this.sock.send(message);
-      });
-      _this._buffer = [];
-    };
-    this.sock.onclose = function(){ console.info('midsockets.Apps.SockjsClient :: closed '+options.url); };
-    this.sock.onmessage = function(e){ 
-      if (!e) { throw new Error("midsockets.SockApp :: Strange Message of 'undefined'"); }
-      if (e.type !== "message") { throw new Error("midsockets.SockApp :: Strange Message of type: '"+e.type+"'"); }
-      try {
-        var parsed = JSON.parse(e.data);
-      } catch(err) {
-        throw new Error("midsockets.SockApp :: Could not parse message data: '"+e.data+"'");
-      }
-      _this._in(parsed, {});
-    };
-    this._out.last(function(req,res,next){
-      if (_this.sock.readyState===1) { // open
-        _this.sock.send(JSON.stringify(req));
-      } else {
-        _this._buffer.push(JSON.stringify(req));
-      }
-    });
-    return this;
-  };
+  }
+  return this;
+};
 
-  Utils.extends(SockjsClient, App);
-
-  SockjsClient.prototype.requestClient = function(){
-    if (arguments.length > 0) { throw new Error("Arguments are not supported for SockjsClient#requestClient"); }
-    return new midsockets.RequestClient({app: this});
-  };
-
-  return SockjsClient;
-
-})();
-});
-
-require.define("/lib/apps/requester.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('../utils');
-var App = require('../app');
-
-/*
- * Requester app
+/*!
+ * route based events
+ * @returns key object for future reference
  */
-
-var Requester = module.exports = App.extend({
-
-  initialize: function(){
-    var _this = this;
-    this.requestListeners = {};
-    _this._in.use('/response',function(req,res,next){
-      if (req.req_id in _this.requestListeners) {
-        _this.requestListeners[req.req_id].call(this,req.data);
-        delete _this.requestListeners[req.req_id];
-      }
-    });
-
-    return this;
-  },
-
-  requester: function(route){
-    if (typeof route != 'string') {
-      route = "/";
-    }
-    var app = new Requester();
-    var _this = this;
-    this._in.use(route, function(req,res,next){
-      // wrap the res.out function to push the route on
-      var _resOutOld = res.out;
-      res.out = function(req,res) {
-        req.route = route + req.route;
-        _resOutOld.apply(this,arguments);
-      };
-      app._in(req,res);
-    });
-    app._out.last(function(req,res,next){
-      req.route = route + req.route;
-      _this._out(req,res);
-    });
-    return app;
-  },
-
-  get: function(route,data,fn){
-    if (typeof data == 'function') { 
-      fn = data; data = null;
-    }
-    var req_id = uuid.v1();
-    if (fn) {
-      this.requestListeners[req_id] = fn;
-    }
-    this._out({route:route,data:data,req_id:req_id},{});
-  },
-
-  subscribe: function(route,fn){
-    this._in.use(route,function(req,res){
-      fn(req.data);
+RequestPromise.prototype.on = function(eventName,listener){
+  if (typeof eventName == 'function'){
+    listener = eventName;
+    eventName = "";
+  }
+  if (!this._eventSubscribers[eventName]) { this._eventSubscribers[eventName]=[]; }
+  var listSize = this._eventSubscribers[eventName].push(function(){
+    listener.apply(this,arguments);
+  });
+  return {eventName:eventName,offset:listSize-1};
+};
+RequestPromise.prototype.off = function(key){
+  if (key && this._eventSubscribers[key.eventName]) {
+    // deleting is intentional to leave gaps in the array,
+    // as splicing causes the offsets to change
+    delete this._eventSubscribers[key.eventName][key.offset];
+  }
+};
+RequestPromise.prototype.emit = function(eventName){
+  var _this = this;
+  if (this._eventSubscribers[eventName]) {
+    var emitArgs = Array.prototype.slice.call(arguments, 1);
+    this._eventSubscribers[eventName].forEach(function(fn){
+      fn.apply(_this, emitArgs)
     });
   }
-
+};
 });
+
+require.define("/lib/sockjs-client.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('./utils');
+var App = require('./app');
+
+/**
+  Creates and listens to a Sockjs client connection, and acts as an
+  App to attach other apps and middleware.
+
+  @class SockjsClient
+  @constructor
+  @param {Object} options
+  @param {String} options.url The url of the midsockets server
+**/
+function SockjsClient(options) {
+  if (!options.url) { 
+    throw new Error("midsockets requires a connection url"); 
+  }
+  SockjsClient.__super__.constructor.apply(this, arguments);
+  var _this = this;
+  this.sock = new SockJS(options.url);
+  this._buffer = [];  
+  this.sock.onopen = function(){
+    console.info('midsockets.Apps.SockjsClient :: opened '+options.url);
+    _this._buffer.forEach(function(message){
+      _this.sock.send(message);
+    });
+    _this._buffer = [];
+  };
+  this.sock.onclose = function(){ console.info('midsockets.Apps.SockjsClient :: closed '+options.url); };
+  this.sock.onmessage = function(e){ 
+    if (!e) { throw new Error("midsockets.SockApp :: Strange Message of 'undefined'"); }
+    if (e.type !== "message") { throw new Error("midsockets.SockApp :: Strange Message of type: '"+e.type+"'"); }
+    try {
+      var parsed = JSON.parse(e.data);
+    } catch(err) {
+      throw new Error("midsockets.SockApp :: Could not parse message data: '"+e.data+"'");
+    }
+    _this._in(parsed, {});
+  };
+  this._out.last(function(req,res,next){
+    if (_this.sock.readyState===1) { // open
+      _this.sock.send(JSON.stringify(req));
+    } else {
+      _this._buffer.push(JSON.stringify(req));
+    }
+  });
+  return this;
+};
+
+module.exports = SockjsClient;
+
+Utils.extends(SockjsClient, App);
+
+
+SockjsClient.prototype.requestClient = function(){
+  if (arguments.length > 0) { throw new Error("Arguments are not supported for SockjsClient#requestClient"); }
+  return new midsockets.RequestClient({app: this});
+};
 });
 
 require.define("/lib/midsockets-client.js",function(require,module,exports,__dirname,__filename,process,global){/*
@@ -2298,11 +2259,11 @@ require.define("/lib/midsockets-client.js",function(require,module,exports,__dir
 
 window.midsockets = (function(){
 
-  // entry / builder function
+  // creates an instance of SockjsClient
 
   function midsockets(options) {
     if (typeof options == "string") { options = {url: options}; }
-    return new midsockets.Apps.SockjsClient(options);
+    return new midsockets.SockjsClient(options);
   }
 
   // other exports
@@ -2311,12 +2272,7 @@ window.midsockets = (function(){
   midsockets.Utils = require('./utils');
   midsockets.App = require('./app');
   midsockets.RequestClient = require('./promises/request_client');
-
-  // app prefabs
-
-  midsockets.Apps = {
-    SockjsClient: require('./apps/sockjs-client'),
-  };
+  midsockets.SockjsClient = require('./sockjs-client');
 
   return midsockets;
 
