@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js - midsockets</title>
+    <title>Events - midsockets</title>
     <link rel="stylesheet" href="http:&#x2F;&#x2F;yui.yahooapis.com&#x2F;3.8.0pr2&#x2F;build&#x2F;cssgrids&#x2F;cssgrids-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/css/main.css" id="site_styles">
@@ -110,100 +110,124 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js</h1>
+                        <h1>Events Class</h1>
+<div class="box meta">
+    
 
-<div class="file">
-    <pre class="code prettyprint linenums">
-var sockjs = require(&#x27;sockjs&#x27;);
-var cookiejs = require(&#x27;cookie&#x27;);
+    
 
-var Utils = require(&#x27;.&#x2F;utils&#x27;);
-var App = require(&#x27;.&#x2F;app&#x27;);
-var Events = require(&#x27;.&#x2F;events&#x27;)
-var logger = require(&#x27;.&#x2F;middleware&#x2F;logger&#x27;)
+    
+        <div class="foundat">
+            Defined in: <a href="..&#x2F;files&#x2F;.._.._midsockets_lib_events.js.html#l1"><code>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;events.js:1</code></a>
+        </div>
+    
 
-&#x2F;**
-  Provides an App which listens to a sockjs instance
-  and can attach to an http.Server instance. This is the object
-  return by midsockets() in nodejs. You can mount other App instances,
-  such as a Router.
+    
+        
+            Module: <a href="../modules/midsockets.html">midsockets</a>
+        
+    
 
-  @class SockjsServer
-  @constructor
-  @param {Object} options
-  @param {String} options.sockjs_url The url of the sockjs client, for use in an embedded iframe if necessary
-**&#x2F;
+    
+</div>
 
-function SockjsServer(options) {
-  if (!options.sockjs_url) { 
-    throw new Error(&quot;midsockets.SockjsServer :: options requires a sockjs_url&quot;); 
-  }
-  this.options = options;
-  SockjsServer.__super__.constructor.apply(this, arguments);
-  return this;
-}
 
-module.exports = SockjsServer;
 
-Utils.extends(SockjsServer, App);
+<div class="box intro">
+    <p>A small implementation of an Event manager. Other classes can extend this without
+having to call the Events() constructor.</p>
+</div>
 
-&#x2F;**
-  Listens to the passed sockjs instance for incoming requests
 
-  @method installListeners
-  @param {Object} socksrv the sockjs instance
-**&#x2F;
-SockjsServer.prototype.installListeners = function(socksrv) {
-  var _this = this;
+    <div class="constructor">
+        <h2>Constructor</h2>
+        <div id="method_Events" class="method item">
+    <h3 class="name"><code>Events</code></h3>
 
-  socksrv.on(&#x27;connection&#x27;, function(conn) {
+    
+        <span class="paren">()</span>
+    
 
-    &#x2F;&#x2F; set up the connection for returns
-    var connApp = new App();
-    connApp.mount(_this);
-    connApp._out.last(function(req,res,next){
-      conn.write(JSON.stringify(req));
-    });
+    
 
-    &#x2F;&#x2F; load cookies
-    var cookies;
-    try {
-      cookies = cookiejs.parse(conn._session.recv.ws.request.headers.cookie);
-    } catch(e) {}
+    
 
-    &#x2F;&#x2F; incoming message
-    conn.on(&#x27;data&#x27;, function(body) {
-      var req = {};
+    
 
-      var res = {};
-      Utils.merge(res, Events.prototype);
+    
 
-      try {
-        var req = JSON.parse(body);
-      } catch(e) {
-        throw new Error(&quot;midsockets.SockApp :: Unexpected message&quot;);
-      }
+    
 
-      &#x2F;&#x2F; warning: this holds a reference to all the res until disconnect
-      conn.on(&#x27;close&#x27;,function(){
-        return res.emit(&#x27;close&#x27;);
-      });
+    
 
-      res.out = connApp._out;
-      req.route = req.route || &quot;&#x2F;&quot;;
-      req.cookies = cookies;
-      _this._in(req,res);
-    });
-  });
+    
 
-  return this;
-};
+    <div class="meta">
+        
+            
+                
+                <p>
+                
+                Defined in
+                
+            
+        
+        
+        <a href="..&#x2F;files&#x2F;.._.._midsockets_lib_events.js.html#l1"><code>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;events.js:1</code></a>
+        
+        </p>
 
-SockjsServer.prototype.listen = function(http_server){
-  var socksrv = sockjs.listen(http_server, this.options);
-  return this.installListeners.call(this, socksrv);
-};
-    </pre>
+
+        
+
+        
+    </div>
+
+    <div class="description">
+        
+    </div>
+
+    
+
+    
+
+    
+</div>
+
+    </div>
+
+
+<div id="classdocs" class="tabview">
+    <ul class="api-class-tabs">
+        <li class="api-class-tab index"><a href="#index">Index</a></li>
+
+        
+        
+        
+        
+    </ul>
+
+    <div>
+        <div id="index" class="api-class-tabpanel index">
+            <h2 class="off-left">Item Index</h2>
+
+            
+
+            
+
+            
+
+            
+        </div>
+
+        
+
+        
+
+        
+
+        
+    </div>
 </div>
 
                     </div>

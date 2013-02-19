@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js - midsockets</title>
+    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;utils.js - midsockets</title>
     <link rel="stylesheet" href="http:&#x2F;&#x2F;yui.yahooapis.com&#x2F;3.8.0pr2&#x2F;build&#x2F;cssgrids&#x2F;cssgrids-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/css/main.css" id="site_styles">
@@ -110,99 +110,83 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js</h1>
+                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;utils.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var sockjs = require(&#x27;sockjs&#x27;);
-var cookiejs = require(&#x27;cookie&#x27;);
-
-var Utils = require(&#x27;.&#x2F;utils&#x27;);
-var App = require(&#x27;.&#x2F;app&#x27;);
-var Events = require(&#x27;.&#x2F;events&#x27;)
-var logger = require(&#x27;.&#x2F;middleware&#x2F;logger&#x27;)
-
 &#x2F;**
-  Provides an App which listens to a sockjs instance
-  and can attach to an http.Server instance. This is the object
-  return by midsockets() in nodejs. You can mount other App instances,
-  such as a Router.
+  Utility functions
 
-  @class SockjsServer
-  @constructor
-  @param {Object} options
-  @param {String} options.sockjs_url The url of the sockjs client, for use in an embedded iframe if necessary
+  @class Utils
+  @static
 **&#x2F;
 
-function SockjsServer(options) {
-  if (!options.sockjs_url) { 
-    throw new Error(&quot;midsockets.SockjsServer :: options requires a sockjs_url&quot;); 
-  }
-  this.options = options;
-  SockjsServer.__super__.constructor.apply(this, arguments);
-  return this;
-}
+var Utils = module.exports = {};
 
-module.exports = SockjsServer;
-
-Utils.extends(SockjsServer, App);
-
-&#x2F;**
-  Listens to the passed sockjs instance for incoming requests
-
-  @method installListeners
-  @param {Object} socksrv the sockjs instance
-**&#x2F;
-SockjsServer.prototype.installListeners = function(socksrv) {
-  var _this = this;
-
-  socksrv.on(&#x27;connection&#x27;, function(conn) {
-
-    &#x2F;&#x2F; set up the connection for returns
-    var connApp = new App();
-    connApp.mount(_this);
-    connApp._out.last(function(req,res,next){
-      conn.write(JSON.stringify(req));
-    });
-
-    &#x2F;&#x2F; load cookies
-    var cookies;
-    try {
-      cookies = cookiejs.parse(conn._session.recv.ws.request.headers.cookie);
-    } catch(e) {}
-
-    &#x2F;&#x2F; incoming message
-    conn.on(&#x27;data&#x27;, function(body) {
-      var req = {};
-
-      var res = {};
-      Utils.merge(res, Events.prototype);
-
-      try {
-        var req = JSON.parse(body);
-      } catch(e) {
-        throw new Error(&quot;midsockets.SockApp :: Unexpected message&quot;);
+Utils.merge = function(obj) {
+  Array.prototype.slice.call(arguments, 1).forEach(function(source) {
+    if (source) {
+      for (var prop in source) {
+        obj[prop] = source[prop];
       }
-
-      &#x2F;&#x2F; warning: this holds a reference to all the res until disconnect
-      conn.on(&#x27;close&#x27;,function(){
-        return res.emit(&#x27;close&#x27;);
-      });
-
-      res.out = connApp._out;
-      req.route = req.route || &quot;&#x2F;&quot;;
-      req.cookies = cookies;
-      _this._in(req,res);
-    });
+    }
   });
-
-  return this;
+  return obj;
 };
 
-SockjsServer.prototype.listen = function(http_server){
-  var socksrv = sockjs.listen(http_server, this.options);
-  return this.installListeners.call(this, socksrv);
+Utils.extends = function(child, parent) { 
+  for (var key in parent) {
+    if ({}.hasOwnProperty.call(parent, key)) child[key] = parent[key]; 
+  } 
+  function ctor() { 
+    this.constructor = child; 
+  } 
+  ctor.prototype = parent.prototype;
+  child.prototype = new ctor();
+  child.__super__ = parent.prototype;
+  return child; 
 };
+
+&#x2F;*
+ * Logging
+ *&#x2F;
+
+var colorcodes = {
+  &#x27;black&#x27;:          &#x27;30&#x27;,
+  &#x27;red&#x27;:            &#x27;31&#x27;,
+  &#x27;green&#x27;:          &#x27;32&#x27;,
+  &#x27;yellow&#x27;:         &#x27;33&#x27;,
+  &#x27;blue&#x27;:           &#x27;34&#x27;,
+  &#x27;magenta&#x27;:        &#x27;35&#x27;,
+  &#x27;cyan&#x27;:           &#x27;36&#x27;,
+  &#x27;white&#x27;:          &#x27;37&#x27;,
+  &#x27;reset&#x27;:          &#x27;39&#x27;,
+  &#x27;bright black&#x27;:   &#x27;90&#x27;,
+  &#x27;bright red&#x27;:     &#x27;91&#x27;,
+  &#x27;bright green&#x27;:   &#x27;92&#x27;,
+  &#x27;bright yellow&#x27;:  &#x27;93&#x27;,
+  &#x27;bright blue&#x27;:    &#x27;94&#x27;,
+  &#x27;bright magenta&#x27;: &#x27;95&#x27;,
+  &#x27;bright cya&#x27;:     &#x27;96&#x27;,
+  &#x27;bright white&#x27;:   &#x27;97&#x27;,
+  &#x27;reset&#x27;:          &#x27;99&#x27;
+};
+
+Utils.logger = function(code){
+  if (code &amp;&amp; &#x2F;^(?:[a-z ]+|[A-Z ]+)$&#x2F;.test(code)){ code = colorcodes[code.toLowerCase()]; }
+  if (!code) { code = &#x27;90&#x27;; }
+  return function(){
+    process.stdout.write(&quot;\x1b[&quot;+code+&quot;m-- &quot;);
+    console.log.apply(null,arguments);
+    process.stdout.write(&quot;\x1b[0m&quot;);
+  };
+};
+
+Utils.log = 
+  (process.stdout) ? 
+    Utils.logger()
+  : console.log;
+
     </pre>
 </div>
 

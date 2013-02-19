@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js - midsockets</title>
+    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;middleware_prototype.js - midsockets</title>
     <link rel="stylesheet" href="http:&#x2F;&#x2F;yui.yahooapis.com&#x2F;3.8.0pr2&#x2F;build&#x2F;cssgrids&#x2F;cssgrids-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/css/main.css" id="site_styles">
@@ -110,98 +110,101 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js</h1>
+                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;middleware_prototype.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var sockjs = require(&#x27;sockjs&#x27;);
-var cookiejs = require(&#x27;cookie&#x27;);
-
-var Utils = require(&#x27;.&#x2F;utils&#x27;);
-var App = require(&#x27;.&#x2F;app&#x27;);
-var Events = require(&#x27;.&#x2F;events&#x27;)
-var logger = require(&#x27;.&#x2F;middleware&#x2F;logger&#x27;)
-
 &#x2F;**
-  Provides an App which listens to a sockjs instance
-  and can attach to an http.Server instance. This is the object
-  return by midsockets() in nodejs. You can mount other App instances,
-  such as a Router.
+  This becomes the prototype of every middleware function.
+  This pattern was taken from the connect middleware.
 
-  @class SockjsServer
-  @constructor
-  @param {Object} options
-  @param {String} options.sockjs_url The url of the sockjs client, for use in an embedded iframe if necessary
+  @class MiddlewarePrototype
+  @static
 **&#x2F;
 
-function SockjsServer(options) {
-  if (!options.sockjs_url) { 
-    throw new Error(&quot;midsockets.SockjsServer :: options requires a sockjs_url&quot;); 
+var MiddlewarePrototype = module.exports = {}
+
+MiddlewarePrototype.use = function(route,fn){
+  if (&#x27;string&#x27; != typeof route) {
+    fn = route;
+    route = &#x27;&#x2F;&#x27;;
+
   }
-  this.options = options;
-  SockjsServer.__super__.constructor.apply(this, arguments);
-  return this;
-}
-
-module.exports = SockjsServer;
-
-Utils.extends(SockjsServer, App);
-
-&#x2F;**
-  Listens to the passed sockjs instance for incoming requests
-
-  @method installListeners
-  @param {Object} socksrv the sockjs instance
-**&#x2F;
-SockjsServer.prototype.installListeners = function(socksrv) {
-  var _this = this;
-
-  socksrv.on(&#x27;connection&#x27;, function(conn) {
-
-    &#x2F;&#x2F; set up the connection for returns
-    var connApp = new App();
-    connApp.mount(_this);
-    connApp._out.last(function(req,res,next){
-      conn.write(JSON.stringify(req));
-    });
-
-    &#x2F;&#x2F; load cookies
-    var cookies;
-    try {
-      cookies = cookiejs.parse(conn._session.recv.ws.request.headers.cookie);
-    } catch(e) {}
-
-    &#x2F;&#x2F; incoming message
-    conn.on(&#x27;data&#x27;, function(body) {
-      var req = {};
-
-      var res = {};
-      Utils.merge(res, Events.prototype);
-
-      try {
-        var req = JSON.parse(body);
-      } catch(e) {
-        throw new Error(&quot;midsockets.SockApp :: Unexpected message&quot;);
-      }
-
-      &#x2F;&#x2F; warning: this holds a reference to all the res until disconnect
-      conn.on(&#x27;close&#x27;,function(){
-        return res.emit(&#x27;close&#x27;);
-      });
-
-      res.out = connApp._out;
-      req.route = req.route || &quot;&#x2F;&quot;;
-      req.cookies = cookies;
-      _this._in(req,res);
-    });
-  });
+  if (&#x27;&#x2F;&#x27; == route[route.length - 1]) {
+    route = route.slice(0, -1);
+  }
+  this.stack.push({route:route,handle:fn});
 
   return this;
 };
 
-SockjsServer.prototype.listen = function(http_server){
-  var socksrv = sockjs.listen(http_server, this.options);
-  return this.installListeners.call(this, socksrv);
+MiddlewarePrototype.last = function(fn){
+  this._last = fn;
+  return this;
+};
+
+MiddlewarePrototype.handle = function(req,res,out){
+  var stack = this.stack
+    , _last = this._last
+    , removed = &#x27;&#x27;
+    , index = 0;
+
+  function next(err,msg) {
+    var path, layer, c;
+
+    req.route = removed + req.route;
+    req.originalRoute = req.originalRoute || req.route;
+    removed = &#x27;&#x27;;
+
+    var layer = stack[index++];
+
+    if (_last &amp;&amp; !layer) {
+      layer = {
+        route: &#x27;&#x2F;&#x27;,
+        handle: _last
+      };
+      _last = undefined;
+    }
+
+    if (!layer) {
+      if (out) return out(err);
+      if (err) {
+        throw err;
+      } else {
+        throw new Error(&quot;unresolved midsockets request with route: &quot;+req.route);
+      }
+      return;
+    }
+
+    try {
+      path = req.route || &#x27;&#x2F;&#x27;;
+
+      if (0 != path.toLowerCase().indexOf(layer.route.toLowerCase())) return next(err);
+      if (layer.route.length &gt; 1) {
+        c = path[layer.route.length];
+        if (c &amp;&amp; &#x27;&#x2F;&#x27; != c &amp;&amp; &#x27;.&#x27; != c) return next(err);
+    
+        removed = layer.route;
+        req.route = req.route.substr(removed.length);
+      }
+
+      var arity = layer.handle.length;
+      if (err) {
+        if (arity === 4) {
+          layer.handle(err, req, res, next);
+        } else {
+          next(err);
+        }
+      } else if (arity &lt; 4) {
+        layer.handle(req, res, next);
+      } else {
+        next();
+      }
+    } catch (e) {
+      next(e);
+    }
+  };
+  next();
 };
     </pre>
 </div>

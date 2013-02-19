@@ -15,7 +15,7 @@
     <div id="hd" class="yui3-g header">
         <div class="yui3-u-3-4">
             
-                <h1><img src="..&#x2F;logo.png" title="midsockets"></h1>
+                <h1><img src="http:&#x2F;&#x2F;masonblier.github.com&#x2F;midsockets&#x2F;logo.png" title="midsockets"></h1>
             
         </div>
         <div class="yui3-u-1-4 version">
@@ -41,15 +41,39 @@
         <div id="api-tabview-panel">
             <ul id="api-classes" class="apis classes">
             
+                <li><a href="..&#x2F;classes/App.html">App</a></li>
+            
                 <li><a href="..&#x2F;classes/DeferredResponse.html">DeferredResponse</a></li>
             
+                <li><a href="..&#x2F;classes/Events.html">Events</a></li>
+            
+                <li><a href="..&#x2F;classes/Inheritance.html">Inheritance</a></li>
+            
+                <li><a href="..&#x2F;classes/Middleware.html">Middleware</a></li>
+            
+                <li><a href="..&#x2F;classes/MiddlewarePrototype.html">MiddlewarePrototype</a></li>
+            
+                <li><a href="..&#x2F;classes/RequestClient.html">RequestClient</a></li>
+            
+                <li><a href="..&#x2F;classes/RequestGhost.html">RequestGhost</a></li>
+            
+                <li><a href="..&#x2F;classes/RequestPromise.html">RequestPromise</a></li>
+            
+                <li><a href="..&#x2F;classes/Router.html">Router</a></li>
+            
+                <li><a href="..&#x2F;classes/SockjsClient.html">SockjsClient</a></li>
+            
                 <li><a href="..&#x2F;classes/SockjsServer.html">SockjsServer</a></li>
+            
+                <li><a href="..&#x2F;classes/Utils.html">Utils</a></li>
             
             </ul>
 
             <ul id="api-modules" class="apis modules">
             
                 <li><a href="..&#x2F;modules/midsockets.html">midsockets</a></li>
+            
+                <li><a href="..&#x2F;modules/Promises.html">Promises</a></li>
             
             </ul>
         </div>
@@ -94,13 +118,14 @@
 
     
         <div class="foundat">
-            Defined in: <a href="..&#x2F;files&#x2F;.._.._midsockets_lib_promises_deferred_response.js.html#l5"><code>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;deferred_response.js:5</code></a>
+            Defined in: <a href="..&#x2F;files&#x2F;.._.._midsockets_lib_promises_deferred_response.js.html#l6"><code>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;deferred_response.js:6</code></a>
         </div>
     
 
     
         
-            Module: <a href="../modules/midsockets.html">midsockets</a>
+            Module: <a href="../modules/Promises.html">Promises</a><br>
+            Parent Module: <a href="../modules/midsockets.html">midsockets</a>
         
     
 
@@ -122,7 +147,17 @@ on the client.</p>
     <h3 class="name"><code>DeferredResponse</code></h3>
 
     
-        <span class="paren">()</span>
+        <div class="args">
+            <span class="paren">(</span><ul class="args-list inline commas">
+            
+                <li class="arg">
+                    
+                        <code>options</code>
+                    
+                </li>
+            
+            </ul><span class="paren">)</span>
+        </div>
     
 
     
@@ -150,7 +185,7 @@ on the client.</p>
             
         
         
-        <a href="..&#x2F;files&#x2F;.._.._midsockets_lib_promises_deferred_response.js.html#l5"><code>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;deferred_response.js:5</code></a>
+        <a href="..&#x2F;files&#x2F;.._.._midsockets_lib_promises_deferred_response.js.html#l6"><code>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;deferred_response.js:6</code></a>
         
         </p>
 
@@ -164,6 +199,74 @@ on the client.</p>
         
     </div>
 
+    
+        <div class="params">
+            <h4>Parameters:</h4>
+
+            <ul class="params-list">
+            
+                <li class="param">
+                    
+                        <code class="param-name">options</code>
+                        <span class="type">Object</span>
+                    
+
+                    
+
+                    <div class="param-description">
+                         
+                    </div>
+
+                    
+                        <ul class="params-list">
+                            
+                            <li class="param">
+                                
+                                    <code class="param-name">res</code>
+                                    <span class="type">Object</span>
+                                
+
+                                <div class="param-description">
+                                    <p>Response object</p>
+                                </div>
+
+                                
+                                    <ul class="params-list">
+                                        
+                                        <li class="param">
+                                            
+                                                <code class="param-name">out</code>
+                                                <span class="type">Function</span>
+                                            
+
+                                            <div class="param-description">
+                                                Method to send response objects
+                                            </div>
+                                        </li>
+                                        
+                                    </ul>
+                                
+                            </li>
+                            
+                            <li class="param">
+                                
+                                    <code class="param-name">req_id</code>
+                                    <span class="type">String</span>
+                                
+
+                                <div class="param-description">
+                                    <p>Unique identifier of this request</p>
+                                </div>
+
+                                
+                            </li>
+                            
+                        </ul>
+                    
+                </li>
+            
+            </ul>
+        </div>
     
 
     

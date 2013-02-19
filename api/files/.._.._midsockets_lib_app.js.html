@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js - midsockets</title>
+    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;app.js - midsockets</title>
     <link rel="stylesheet" href="http:&#x2F;&#x2F;yui.yahooapis.com&#x2F;3.8.0pr2&#x2F;build&#x2F;cssgrids&#x2F;cssgrids-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/css/main.css" id="site_styles">
@@ -110,98 +110,74 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js</h1>
+                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;app.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var sockjs = require(&#x27;sockjs&#x27;);
-var cookiejs = require(&#x27;cookie&#x27;);
-
+var inheritance = require(&#x27;.&#x2F;inheritance&#x27;);
+var Events = require(&#x27;.&#x2F;events&#x27;);
+var MiddlewarePrototype = require(&#x27;.&#x2F;middleware_prototype&#x27;);
 var Utils = require(&#x27;.&#x2F;utils&#x27;);
-var App = require(&#x27;.&#x2F;app&#x27;);
-var Events = require(&#x27;.&#x2F;events&#x27;)
-var logger = require(&#x27;.&#x2F;middleware&#x2F;logger&#x27;)
 
 &#x2F;**
-  Provides an App which listens to a sockjs instance
-  and can attach to an http.Server instance. This is the object
-  return by midsockets() in nodejs. You can mount other App instances,
-  such as a Router.
-
-  @class SockjsServer
-  @constructor
-  @param {Object} options
-  @param {String} options.sockjs_url The url of the sockjs client, for use in an embedded iframe if necessary
+  @module midsockets
 **&#x2F;
 
-function SockjsServer(options) {
-  if (!options.sockjs_url) { 
-    throw new Error(&quot;midsockets.SockjsServer :: options requires a sockjs_url&quot;); 
-  }
-  this.options = options;
-  SockjsServer.__super__.constructor.apply(this, arguments);
+&#x2F;**
+  App is the base class of different things you can connect into your midsockets
+  chain. 
+
+  @class App
+  @constructor
+**&#x2F;
+
+function App(){
+  var _this = this;
+  this._in = function(req,res){ _this._in.handle(req,res); };
+  this._out = function(req,res){ _this._out.handle(req,res); };
+  this._in.stack = [];
+  this._out.stack = [];
+  Utils.merge(this._in, MiddlewarePrototype);
+  Utils.merge(this._out, MiddlewarePrototype);
+  this.initialize.apply(this,arguments);
   return this;
 }
 
-module.exports = SockjsServer;
+module.exports = App;
 
-Utils.extends(SockjsServer, App);
+Utils.extends(App, Events);
+App.extend = inheritance.extend;
 
-&#x2F;**
-  Listens to the passed sockjs instance for incoming requests
+App.prototype.initialize = function(){};
 
-  @method installListeners
-  @param {Object} socksrv the sockjs instance
-**&#x2F;
-SockjsServer.prototype.installListeners = function(socksrv) {
+App.prototype.mount = function(route, app){
+  if (typeof route != &#x27;string&#x27;) {
+    app = route;
+    route = &quot;&#x2F;&quot;;
+  }
   var _this = this;
-
-  socksrv.on(&#x27;connection&#x27;, function(conn) {
-
-    &#x2F;&#x2F; set up the connection for returns
-    var connApp = new App();
-    connApp.mount(_this);
-    connApp._out.last(function(req,res,next){
-      conn.write(JSON.stringify(req));
-    });
-
-    &#x2F;&#x2F; load cookies
-    var cookies;
-    try {
-      cookies = cookiejs.parse(conn._session.recv.ws.request.headers.cookie);
-    } catch(e) {}
-
-    &#x2F;&#x2F; incoming message
-    conn.on(&#x27;data&#x27;, function(body) {
-      var req = {};
-
-      var res = {};
-      Utils.merge(res, Events.prototype);
-
-      try {
-        var req = JSON.parse(body);
-      } catch(e) {
-        throw new Error(&quot;midsockets.SockApp :: Unexpected message&quot;);
-      }
-
-      &#x2F;&#x2F; warning: this holds a reference to all the res until disconnect
-      conn.on(&#x27;close&#x27;,function(){
-        return res.emit(&#x27;close&#x27;);
-      });
-
-      res.out = connApp._out;
-      req.route = req.route || &quot;&#x2F;&quot;;
-      req.cookies = cookies;
-      _this._in(req,res);
-    });
+  this._in.use(route, function(req,res,next){
+    &#x2F;&#x2F; wrap the res.out function to push the route on
+    var _resOutOld = res.out;
+    res.out = function(req,res) {
+      var subroute = req.route.replace(&#x2F;^[\&#x2F;]+&#x2F;,&#x27;&#x27;); &#x2F;&#x2F; strip leading slashes
+      req.route = route + (route.charAt(route.length-1)==&#x27;&#x2F;&#x27; ? &quot;&quot; : &quot;&#x2F;&quot;) + subroute;
+      _resOutOld.apply(this,arguments);
+    };
+    app._in(req,res);
   });
-
+  app._out.last(function(req,res,next){
+    var subroute = req.route.replace(&#x2F;^[\&#x2F;]+&#x2F;,&#x27;&#x27;); &#x2F;&#x2F; strip leading slashes
+    req.route = route + (route.charAt(route.length-1)==&#x27;&#x2F;&#x27; ? &quot;&quot; : &quot;&#x2F;&quot;) + subroute;
+    _this._out(req,res);
+  });
   return this;
 };
 
-SockjsServer.prototype.listen = function(http_server){
-  var socksrv = sockjs.listen(http_server, this.options);
-  return this.installListeners.call(this, socksrv);
+App.prototype.child = function(route) {
+  var app = new App();
+  this.mount(route,app);
+  return app;
 };
     </pre>
 </div>

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js - midsockets</title>
+    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;router.js - midsockets</title>
     <link rel="stylesheet" href="http:&#x2F;&#x2F;yui.yahooapis.com&#x2F;3.8.0pr2&#x2F;build&#x2F;cssgrids&#x2F;cssgrids-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/css/main.css" id="site_styles">
@@ -110,98 +110,92 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js</h1>
+                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;router.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var sockjs = require(&#x27;sockjs&#x27;);
-var cookiejs = require(&#x27;cookie&#x27;);
-
-var Utils = require(&#x27;.&#x2F;utils&#x27;);
-var App = require(&#x27;.&#x2F;app&#x27;);
-var Events = require(&#x27;.&#x2F;events&#x27;)
-var logger = require(&#x27;.&#x2F;middleware&#x2F;logger&#x27;)
+App = require(&#x27;.&#x2F;app&#x27;);
+Utils = require(&#x27;.&#x2F;utils&#x27;);
+DeferredResponse = require(&#x27;.&#x2F;promises&#x2F;deferred_response&#x27;)
 
 &#x2F;**
-  Provides an App which listens to a sockjs instance
-  and can attach to an http.Server instance. This is the object
-  return by midsockets() in nodejs. You can mount other App instances,
-  such as a Router.
+  Routers are Apps which allow you to mount other routers or
+  listener functions on specific routes. Listeners are given
+  a DeferredResponse instance to respond to.
 
-  @class SockjsServer
+  @class Router
   @constructor
-  @param {Object} options
-  @param {String} options.sockjs_url The url of the sockjs client, for use in an embedded iframe if necessary
 **&#x2F;
 
-function SockjsServer(options) {
-  if (!options.sockjs_url) { 
-    throw new Error(&quot;midsockets.SockjsServer :: options requires a sockjs_url&quot;); 
+function Router(){
+  var _this = this;
+  this._routeMap = {};
+  Router.__super__.constructor.apply(this, arguments);
+
+  if (_this._in) {
+    _this._in.use(function(req,res,next){
+      res = new DeferredResponse({res: res, req_id: req.req_id});
+      return _this.handle.call(_this,req,res,next);
+    });
   }
-  this.options = options;
-  SockjsServer.__super__.constructor.apply(this, arguments);
-  return this;
 }
 
-module.exports = SockjsServer;
+module.exports = Router;
 
-Utils.extends(SockjsServer, App);
+Utils.extends(Router,App);
 
-&#x2F;**
-  Listens to the passed sockjs instance for incoming requests
+Router.prototype.on = function(route, handle){
+  if (typeof route == &#x27;function&#x27;){
+    handle = route;
+    route = &quot;&quot;;
+  }
 
-  @method installListeners
-  @param {Object} socksrv the sockjs instance
-**&#x2F;
-SockjsServer.prototype.installListeners = function(socksrv) {
-  var _this = this;
-
-  socksrv.on(&#x27;connection&#x27;, function(conn) {
-
-    &#x2F;&#x2F; set up the connection for returns
-    var connApp = new App();
-    connApp.mount(_this);
-    connApp._out.last(function(req,res,next){
-      conn.write(JSON.stringify(req));
-    });
-
-    &#x2F;&#x2F; load cookies
-    var cookies;
-    try {
-      cookies = cookiejs.parse(conn._session.recv.ws.request.headers.cookie);
-    } catch(e) {}
-
-    &#x2F;&#x2F; incoming message
-    conn.on(&#x27;data&#x27;, function(body) {
-      var req = {};
-
-      var res = {};
-      Utils.merge(res, Events.prototype);
-
-      try {
-        var req = JSON.parse(body);
-      } catch(e) {
-        throw new Error(&quot;midsockets.SockApp :: Unexpected message&quot;);
+  var strp = (route.charAt(0)==&#x27;&#x2F;&#x27; ? route.substr(1) : route);
+  var str = strp.split(&#x27;&#x2F;&#x27;,1)[0];
+  if (str.length &gt; 0) {
+    var rem = strp.substr(str.length);
+    if (str.charAt(0) == &#x27;:&#x27;) {
+      var spl = str.substr(1);
+      if (!this._routeMap[&quot;:&quot;]) { this._routeMap[&quot;:&quot;] = {}; }
+      if (!this._routeMap[&quot;:&quot;][spl]) {
+        this._routeMap[&quot;:&quot;][spl] = new Router();
       }
-
-      &#x2F;&#x2F; warning: this holds a reference to all the res until disconnect
-      conn.on(&#x27;close&#x27;,function(){
-        return res.emit(&#x27;close&#x27;);
-      });
-
-      res.out = connApp._out;
-      req.route = req.route || &quot;&#x2F;&quot;;
-      req.cookies = cookies;
-      _this._in(req,res);
-    });
-  });
-
-  return this;
+      this._routeMap[&quot;:&quot;][spl].on(rem,handle)
+    } else {
+      if (!this._routeMap[str]) {
+        this._routeMap[str] = new Router();
+      }
+      this._routeMap[str].on(rem, handle);
+    }
+  } else {
+    if (!this._routeMap[&quot;&#x2F;&quot;]) { this._routeMap[&quot;&#x2F;&quot;] = []; }
+    this._routeMap[&quot;&#x2F;&quot;].push(handle);
+  }
 };
 
-SockjsServer.prototype.listen = function(http_server){
-  var socksrv = sockjs.listen(http_server, this.options);
-  return this.installListeners.call(this, socksrv);
+Router.prototype.handle = function(req,res,next) {
+  var _this = this;
+  var strp = (req.route.charAt(0)==&#x27;&#x2F;&#x27; ? req.route.substr(1) : req.route);
+  var str = strp.split(&#x27;&#x2F;&#x27;,1)[0];
+  var rem = strp.substr(str.length);
+  if (_this._routeMap[str]) {
+    req.route = rem;
+    _this._routeMap[str].handle(req,res,next);
+  } else if (_this._routeMap[&quot;:&quot;]) {
+    for (var key in _this._routeMap[&quot;:&quot;]) {
+      if ({}.hasOwnProperty.call(_this._routeMap[&quot;:&quot;],key)){
+        req[key] = str;
+        req.route = rem;
+        _this._routeMap[&quot;:&quot;][key].handle(req,res,next);
+      }
+    }
+  } else if (str.length &lt;= 0 &amp;&amp; _this._routeMap[&quot;&#x2F;&quot;]) {
+    _this._routeMap[&quot;&#x2F;&quot;].forEach(function(handler){
+      handler(req,res,next);
+    });
+  } else {
+    next();
+  }
 };
     </pre>
 </div>

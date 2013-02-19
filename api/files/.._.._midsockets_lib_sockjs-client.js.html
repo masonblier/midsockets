@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js - midsockets</title>
+    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-client.js - midsockets</title>
     <link rel="stylesheet" href="http:&#x2F;&#x2F;yui.yahooapis.com&#x2F;3.8.0pr2&#x2F;build&#x2F;cssgrids&#x2F;cssgrids-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/css/main.css" id="site_styles">
@@ -110,98 +110,66 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-server.js</h1>
+                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;sockjs-client.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var sockjs = require(&#x27;sockjs&#x27;);
-var cookiejs = require(&#x27;cookie&#x27;);
-
 var Utils = require(&#x27;.&#x2F;utils&#x27;);
 var App = require(&#x27;.&#x2F;app&#x27;);
-var Events = require(&#x27;.&#x2F;events&#x27;)
-var logger = require(&#x27;.&#x2F;middleware&#x2F;logger&#x27;)
 
 &#x2F;**
-  Provides an App which listens to a sockjs instance
-  and can attach to an http.Server instance. This is the object
-  return by midsockets() in nodejs. You can mount other App instances,
-  such as a Router.
+  Creates and listens to a Sockjs client connection, and acts as an
+  App to attach other apps and middleware.
 
-  @class SockjsServer
+  @class SockjsClient
   @constructor
   @param {Object} options
-  @param {String} options.sockjs_url The url of the sockjs client, for use in an embedded iframe if necessary
+  @param {String} options.url The url of the midsockets server
 **&#x2F;
-
-function SockjsServer(options) {
-  if (!options.sockjs_url) { 
-    throw new Error(&quot;midsockets.SockjsServer :: options requires a sockjs_url&quot;); 
+function SockjsClient(options) {
+  if (!options.url) { 
+    throw new Error(&quot;midsockets requires a connection url&quot;); 
   }
-  this.options = options;
-  SockjsServer.__super__.constructor.apply(this, arguments);
-  return this;
-}
-
-module.exports = SockjsServer;
-
-Utils.extends(SockjsServer, App);
-
-&#x2F;**
-  Listens to the passed sockjs instance for incoming requests
-
-  @method installListeners
-  @param {Object} socksrv the sockjs instance
-**&#x2F;
-SockjsServer.prototype.installListeners = function(socksrv) {
+  SockjsClient.__super__.constructor.apply(this, arguments);
   var _this = this;
-
-  socksrv.on(&#x27;connection&#x27;, function(conn) {
-
-    &#x2F;&#x2F; set up the connection for returns
-    var connApp = new App();
-    connApp.mount(_this);
-    connApp._out.last(function(req,res,next){
-      conn.write(JSON.stringify(req));
+  this.sock = new SockJS(options.url);
+  this._buffer = [];  
+  this.sock.onopen = function(){
+    console.info(&#x27;midsockets.Apps.SockjsClient :: opened &#x27;+options.url);
+    _this._buffer.forEach(function(message){
+      _this.sock.send(message);
     });
-
-    &#x2F;&#x2F; load cookies
-    var cookies;
+    _this._buffer = [];
+  };
+  this.sock.onclose = function(){ console.info(&#x27;midsockets.Apps.SockjsClient :: closed &#x27;+options.url); };
+  this.sock.onmessage = function(e){ 
+    if (!e) { throw new Error(&quot;midsockets.SockApp :: Strange Message of &#x27;undefined&#x27;&quot;); }
+    if (e.type !== &quot;message&quot;) { throw new Error(&quot;midsockets.SockApp :: Strange Message of type: &#x27;&quot;+e.type+&quot;&#x27;&quot;); }
     try {
-      cookies = cookiejs.parse(conn._session.recv.ws.request.headers.cookie);
-    } catch(e) {}
-
-    &#x2F;&#x2F; incoming message
-    conn.on(&#x27;data&#x27;, function(body) {
-      var req = {};
-
-      var res = {};
-      Utils.merge(res, Events.prototype);
-
-      try {
-        var req = JSON.parse(body);
-      } catch(e) {
-        throw new Error(&quot;midsockets.SockApp :: Unexpected message&quot;);
-      }
-
-      &#x2F;&#x2F; warning: this holds a reference to all the res until disconnect
-      conn.on(&#x27;close&#x27;,function(){
-        return res.emit(&#x27;close&#x27;);
-      });
-
-      res.out = connApp._out;
-      req.route = req.route || &quot;&#x2F;&quot;;
-      req.cookies = cookies;
-      _this._in(req,res);
-    });
+      var parsed = JSON.parse(e.data);
+    } catch(err) {
+      throw new Error(&quot;midsockets.SockApp :: Could not parse message data: &#x27;&quot;+e.data+&quot;&#x27;&quot;);
+    }
+    _this._in(parsed, {});
+  };
+  this._out.last(function(req,res,next){
+    if (_this.sock.readyState===1) { &#x2F;&#x2F; open
+      _this.sock.send(JSON.stringify(req));
+    } else {
+      _this._buffer.push(JSON.stringify(req));
+    }
   });
-
   return this;
 };
 
-SockjsServer.prototype.listen = function(http_server){
-  var socksrv = sockjs.listen(http_server, this.options);
-  return this.installListeners.call(this, socksrv);
+module.exports = SockjsClient;
+
+Utils.extends(SockjsClient, App);
+
+
+SockjsClient.prototype.requestClient = function(){
+  if (arguments.length &gt; 0) { throw new Error(&quot;Arguments are not supported for SockjsClient#requestClient&quot;); }
+  return new midsockets.RequestClient({app: this});
 };
     </pre>
 </div>

@@ -4,24 +4,101 @@
         "description": "Real time streaming requests in a promises api.",
         "version": "0.1.3",
         "url": "https://github.com/masonblier/midsockets",
-        "logo": "../logo.png"
+        "logo": "http://masonblier.github.com/midsockets/logo.png"
     },
     "files": {
+        "../../midsockets/lib/middleware/logger.js": {
+            "name": "../../midsockets/lib/middleware/logger.js",
+            "modules": {
+                "midsockets": 1
+            },
+            "classes": {
+                "Middleware": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
         "../../midsockets/lib/promises/deferred_response.js": {
             "name": "../../midsockets/lib/promises/deferred_response.js",
-            "modules": {},
+            "modules": {
+                "Promises": 1
+            },
             "classes": {
                 "DeferredResponse": 1
             },
             "fors": {},
             "namespaces": {}
         },
-        "../../midsockets/lib/midsockets-server.js": {
-            "name": "../../midsockets/lib/midsockets-server.js",
-            "modules": {
-                "midsockets": 1
+        "../../midsockets/lib/promises/request_client.js": {
+            "name": "../../midsockets/lib/promises/request_client.js",
+            "modules": {},
+            "classes": {
+                "RequestGhost": 1,
+                "RequestClient": 1
             },
-            "classes": {},
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/promises/request_promise.js": {
+            "name": "../../midsockets/lib/promises/request_promise.js",
+            "modules": {},
+            "classes": {
+                "RequestPromise": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/app.js": {
+            "name": "../../midsockets/lib/app.js",
+            "modules": {},
+            "classes": {
+                "App": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/events.js": {
+            "name": "../../midsockets/lib/events.js",
+            "modules": {},
+            "classes": {
+                "Events": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/inheritance.js": {
+            "name": "../../midsockets/lib/inheritance.js",
+            "modules": {},
+            "classes": {
+                "Inheritance": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/middleware_prototype.js": {
+            "name": "../../midsockets/lib/middleware_prototype.js",
+            "modules": {},
+            "classes": {
+                "MiddlewarePrototype": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/router.js": {
+            "name": "../../midsockets/lib/router.js",
+            "modules": {},
+            "classes": {
+                "Router": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/sockjs-client.js": {
+            "name": "../../midsockets/lib/sockjs-client.js",
+            "modules": {},
+            "classes": {
+                "SockjsClient": 1
+            },
             "fors": {},
             "namespaces": {}
         },
@@ -33,26 +110,78 @@
             },
             "fors": {},
             "namespaces": {}
+        },
+        "../../midsockets/lib/utils.js": {
+            "name": "../../midsockets/lib/utils.js",
+            "modules": {},
+            "classes": {
+                "Utils": 1
+            },
+            "fors": {},
+            "namespaces": {}
         }
     },
     "modules": {
         "midsockets": {
             "name": "midsockets",
-            "submodules": {},
+            "submodules": {
+                "Promises": 1
+            },
             "classes": {
+                "Middleware": 1,
                 "DeferredResponse": 1,
-                "SockjsServer": 1
+                "RequestGhost": 1,
+                "RequestClient": 1,
+                "RequestPromise": 1,
+                "App": 1,
+                "Events": 1,
+                "Inheritance": 1,
+                "MiddlewarePrototype": 1,
+                "Router": 1,
+                "SockjsClient": 1,
+                "SockjsServer": 1,
+                "Utils": 1
             },
             "fors": {},
             "namespaces": {},
-            "tag": "main",
-            "file": "../../midsockets/lib/sockjs-server.js",
-            "line": 9,
-            "description": "midsockets - real time streaming request promises",
-            "itemtype": "main"
+            "tag": "module",
+            "file": "../../midsockets/lib/utils.js",
+            "line": 1
+        },
+        "Promises": {
+            "name": "Promises",
+            "submodules": {},
+            "classes": {
+                "DeferredResponse": 1,
+                "RequestGhost": 1,
+                "RequestClient": 1,
+                "RequestPromise": 1
+            },
+            "fors": {},
+            "is_submodule": 1,
+            "namespaces": {},
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/promises/request_promise.js",
+            "line": 27,
+            "description": "The class of the object passed as `res` to Router event handlers. When the\ndeferredResponse is resolved, the data is sent to the corresponding RequestPromise\non the client."
         }
     },
     "classes": {
+        "Middleware": {
+            "name": "Middleware",
+            "shortname": "Middleware",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/middleware/logger.js",
+            "line": 5,
+            "static": 1
+        },
         "DeferredResponse": {
             "name": "DeferredResponse",
             "shortname": "DeferredResponse",
@@ -62,10 +191,217 @@
             "plugin_for": [],
             "extension_for": [],
             "module": "midsockets",
+            "submodule": "Promises",
+            "namespace": "",
             "file": "../../midsockets/lib/promises/deferred_response.js",
-            "line": 5,
+            "line": 6,
             "description": "The class of the object passed as `res` to Router event handlers. When the\ndeferredResponse is resolved, the data is sent to the corresponding RequestPromise\non the client.",
+            "is_constructor": 1,
+            "params": [
+                {
+                    "name": "options",
+                    "description": "",
+                    "type": "Object",
+                    "props": [
+                        {
+                            "name": "res",
+                            "description": "Response object",
+                            "type": "Object",
+                            "props": [
+                                {
+                                    "name": "out",
+                                    "description": "Method to send response objects",
+                                    "type": "Function"
+                                }
+                            ]
+                        },
+                        {
+                            "name": "req_id",
+                            "description": "Unique identifier of this request",
+                            "type": "String"
+                        }
+                    ]
+                }
+            ]
+        },
+        "RequestGhost": {
+            "name": "RequestGhost",
+            "shortname": "RequestGhost",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "submodule": "Promises",
+            "namespace": "",
+            "file": "../../midsockets/lib/promises/request_client.js",
+            "line": 8,
+            "description": "Implements the same request methods as RequestClient. By pasing a route parameter,\nthis object will map requested routes as relative to the passed route.",
+            "is_constructor": 1,
+            "params": [
+                {
+                    "name": "route",
+                    "description": "The route to mount onto",
+                    "type": "String"
+                },
+                {
+                    "name": "parent",
+                    "description": "The parent RequestGhost or RequestClient to send requests to",
+                    "type": "RequestGhost"
+                }
+            ]
+        },
+        "RequestClient": {
+            "name": "RequestClient",
+            "shortname": "RequestClient",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "submodule": "Promises",
+            "namespace": "",
+            "file": "../../midsockets/lib/promises/request_client.js",
+            "line": 44,
+            "description": "Implements the same request methods as RequestClient. By pasing a route parameter,\nthis object will map requested routes as relative to the passed route.",
+            "is_constructor": 1,
+            "params": [
+                {
+                    "name": "options",
+                    "description": "",
+                    "type": "Object",
+                    "props": [
+                        {
+                            "name": "app",
+                            "description": "The parent app to listen on",
+                            "type": "App"
+                        }
+                    ]
+                }
+            ]
+        },
+        "RequestPromise": {
+            "name": "RequestPromise",
+            "shortname": "RequestPromise",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "submodule": "Promises",
+            "namespace": "",
+            "file": "../../midsockets/lib/promises/request_promise.js",
+            "line": 27,
+            "description": "A promise-like object which is returned by requests made\nby a RequestClient. If the response is not resolved immediately,\nthe server may emit events back over midsockets to this object.",
             "is_constructor": 1
+        },
+        "App": {
+            "name": "App",
+            "shortname": "App",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/app.js",
+            "line": 10,
+            "description": "App is the base class of different things you can connect into your midsockets\nchain.",
+            "is_constructor": 1
+        },
+        "Events": {
+            "name": "Events",
+            "shortname": "Events",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/events.js",
+            "line": 1,
+            "description": "A small implementation of an Event manager. Other classes can extend this without\nhaving to call the Events() constructor.",
+            "is_constructor": 1
+        },
+        "Inheritance": {
+            "name": "Inheritance",
+            "shortname": "Inheritance",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/inheritance.js",
+            "line": 3,
+            "description": "Methods for implementing backbone style inheritance.",
+            "static": 1,
+            "is_constructor": 1
+        },
+        "MiddlewarePrototype": {
+            "name": "MiddlewarePrototype",
+            "shortname": "MiddlewarePrototype",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/middleware_prototype.js",
+            "line": 1,
+            "description": "This becomes the prototype of every middleware function.\nThis pattern was taken from the connect middleware.",
+            "static": 1
+        },
+        "Router": {
+            "name": "Router",
+            "shortname": "Router",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/router.js",
+            "line": 5,
+            "description": "Routers are Apps which allow you to mount other routers or\nlistener functions on specific routes. Listeners are given\na DeferredResponse instance to respond to.",
+            "is_constructor": 1
+        },
+        "SockjsClient": {
+            "name": "SockjsClient",
+            "shortname": "SockjsClient",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/sockjs-client.js",
+            "line": 4,
+            "description": "Creates and listens to a Sockjs client connection, and acts as an\nApp to attach other apps and middleware.",
+            "is_constructor": 1,
+            "params": [
+                {
+                    "name": "options",
+                    "description": "",
+                    "type": "Object",
+                    "props": [
+                        {
+                            "name": "url",
+                            "description": "The url of the midsockets server",
+                            "type": "String"
+                        }
+                    ]
+                }
+            ]
         },
         "SockjsServer": {
             "name": "SockjsServer",
@@ -83,24 +419,67 @@
             "is_constructor": 1,
             "params": [
                 {
-                    "name": "options.sockjs_url",
-                    "description": "The url of the sockjs client, for use in an embedded iframe if necessary",
-                    "optional": true
+                    "name": "options",
+                    "description": "",
+                    "type": "Object",
+                    "props": [
+                        {
+                            "name": "sockjs_url",
+                            "description": "The url of the sockjs client, for use in an embedded iframe if necessary",
+                            "type": "String"
+                        }
+                    ]
                 }
             ]
+        },
+        "Utils": {
+            "name": "Utils",
+            "shortname": "Utils",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "namespace": "",
+            "file": "../../midsockets/lib/utils.js",
+            "line": 1,
+            "description": "Utility functions",
+            "static": 1
         }
     },
     "classitems": [
         {
+            "file": "../../midsockets/lib/middleware/logger.js",
+            "line": 10,
+            "description": "Function to generate a middleware which outputs all midsockets requests\nin the format:\n\n    tag req.route",
+            "itemtype": "method",
+            "name": "logger",
+            "params": [
+                {
+                    "name": "tag",
+                    "description": "",
+                    "type": "String"
+                }
+            ],
+            "return": {
+                "description": "the middleware",
+                "type": "Function"
+            },
+            "class": "Middleware",
+            "module": "midsockets"
+        },
+        {
             "file": "../../midsockets/lib/sockjs-server.js",
-            "line": 30,
+            "line": 34,
             "description": "Listens to the passed sockjs instance for incoming requests",
             "itemtype": "method",
-            "name": "",
+            "name": "installListeners",
             "params": [
                 {
                     "name": "socksrv",
-                    "description": "the sockjs instance"
+                    "description": "the sockjs instance",
+                    "type": "Object"
                 }
             ],
             "class": "SockjsServer",
