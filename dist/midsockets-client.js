@@ -447,8 +447,10 @@ module.exports = Events;
 
 Events.prototype.on = function(key, fn) {
   if (this._eventSubscribers===undefined) { this._eventSubscribers = {}; }
+  if (!fn && typeof key === 'function') { fn = key; key = ""; }
   if (!this._eventSubscribers[key]) { this._eventSubscribers[key]=[]; }
   this._eventSubscribers[key].push(fn);
+  return this;
 };
 
 Events.prototype.off = function(key, fn) {
@@ -458,6 +460,7 @@ Events.prototype.off = function(key, fn) {
   if (removalIndex >= 0) {
     this._eventSubscribers[key].splice(removalIndex, 1);
   }
+  return this;
 };
 
 Events.prototype.emit = function(key)  {
@@ -468,6 +471,7 @@ Events.prototype.emit = function(key)  {
       fn.apply(this, emitArgs)
     });
   }
+  return this;
 };
 });
 
@@ -762,7 +766,7 @@ MiddlewarePrototype.handle = function(req,res,out){
 };
 });
 
-require.define("/promises/request_client.js",function(require,module,exports,__dirname,__filename,process,global){var RequestPromise = require('./request_promise')
+require.define("/promises/request_client.js",function(require,module,exports,__dirname,__filename,process,global){var DeferredRequest = require('./deferred_request')
 
 /**
   @module midsockets
@@ -851,11 +855,11 @@ module.exports = (function(){
   };
 
   RequestClient.prototype.post = function(route,data){
-    var rp = new RequestPromise();
+    var def = new DeferredRequest();
     var req_id = uuid.v1();
-    this._requestPromises[req_id] = rp;
+    this._requestPromises[req_id] = def;
     this.app._out({route:route,data:data,req_id:req_id},{});
-    return rp;
+    return def.promise;
   };
 
   RequestClient.prototype.requester = function(route){
@@ -867,7 +871,11 @@ module.exports = (function(){
 })();
 });
 
-require.define("/promises/request_promise.js",function(require,module,exports,__dirname,__filename,process,global){/**
+require.define("/promises/deferred_request.js",function(require,module,exports,__dirname,__filename,process,global){var Utils = require('../utils');
+var Events = require('../events');
+var Deferred = require('./deferred');
+
+/**
   @module midsockets
   @submodule Promises
 **/
@@ -879,88 +887,139 @@ var eventedMiddleware = function(_this){
       emitArgs.unshift(req.eventName);
       _this.emit.apply(_this,emitArgs);
     } else if (req.err) {
-      _this._promise.err = req.err;
-      _this._promise.rejecteds.forEach(function(rejected){
-        rejected(_this._promise.err);
-      });
+      _this.reject(req.err);
     } else {
-      _this._promise.val = req.data;
-      _this._promise.fulfilled = true;
-      _this._promise.fulfilleds.forEach(function(fulfilled){
-        fulfilled(_this._promise.val);
-      }); 
+      _this.fulfill(req.data);
     }
   };
 };
 
 /**
-  A promise-like object which is returned by requests made
-  by a RequestClient. If the response is not resolved immediately,
-  the server may emit events back over midsockets to this object.
+  A Deferred object which wraps requests. The return result of
+  the request methods is the promise created by a DeferredRequest.
 
-  @class RequestPromise
+  @class DeferredRequest
   @constructor
 **/
 
-function RequestPromise() {
-  this._eventSubscribers = {};
-  this._promise = {fulfilleds: [], rejecteds: []};
+function DeferredRequest() {
+  DeferredRequest.__super__.constructor.apply(this, arguments);
+  this.emit = Events.prototype.emit.bind(this);
+  this.promise.on = Events.prototype.on.bind(this);
+  this.promise.off = Events.prototype.off.bind(this);
   this.handle = eventedMiddleware(this);
+};
+
+Utils.extends(DeferredRequest, Deferred);
+
+module.exports = DeferredRequest;
+});
+
+require.define("/promises/deferred.js",function(require,module,exports,__dirname,__filename,process,global){/**
+  @module midsockets
+  @submodule Promises
+**/
+
+/**
+  An promises/a compatable promise implementation
+  based on https://github.com/ForbesLindesay/promises-a
+
+  @class Deferred
+  @constructor
+**/
+
+function Deferred() {
+  this.resolved = false;
+  this.fulfilled = false;
+  this.fulfill = fulfill.bind(this);
+  this.reject = reject.bind(this);
+  this.val = undefined;
+  this.waiting = [];
+  this.running = false;
+  this.promise = {
+    then: then.bind(this), 
+    valueOf: valueOf.bind(this), 
+    done: done.bind(this)
+  };
 }
 
-module.exports = RequestPromise;
+module.exports = Deferred;
 
-/*!
- * promises/a methods are emitted on request termination.
- */
-RequestPromise.prototype.then = function(fulfilled,rejected) {
-  throw new Error("not yet implemented");
-  return this;
-};
-RequestPromise.prototype.done = function(fulfilled,rejected) {
-  if (!this._promise.done) {
-    if (fulfilled) { this._promise.fulfilleds.push(fulfilled); }
-    if (rejected) { this._promise.rejecteds.push(rejected); }
+Deferred.prototype.resolve = function resolve(success, value) {
+  if (this.resolved) return;
+  if (success && value && typeof value.then === 'function') {
+    value.then(this.fulfill.bind(this), this.reject.bind(this))
   } else {
-    if (this._promise.fulfilled && fulfilled) {
-      fulfilled(this._promise.val);
-    } else if (rejected) {
-      rejected(this._promise.err);
+    this.resolved = true
+    this.fulfilled = success
+    this.val = value
+    __next.bind(this)()
+  }
+};
+
+function fulfill(val) {
+  this.resolve(true, val)
+}
+function reject(err) {
+  this.resolve(false, err)
+}
+
+function valueOf() {
+  return this.fulfilled ? this.val : this.promise;
+}
+
+function __next(){
+  if (this.waiting.length) {
+    this.running = true
+    this.waiting.shift()()
+  } else {
+    this.running = false
+  }
+};
+
+function then(cb, eb) {
+  var _this = this;
+  var def = new Deferred();
+  var next = __next.bind(this);
+  var handler = function() {
+    var callback = _this.fulfilled ? cb : eb;
+    if (typeof callback === 'function') {
+      setTimeout(function(){
+        var result;
+        try {
+          result = callback(_this.val);
+        } catch (ex) {
+          def.reject(ex);
+          next();
+        }
+        def.fulfill(result);
+        next();
+      }, 0);
+    } else if (_this.fulfilled) {
+      def.fulfill(_this.val);
+      next();
+    } else {
+      def.reject(_this.val);
+      next();
     }
   }
-  return this;
+  this.waiting.push(handler);
+  if (_this.resolved && !_this.running) {
+    next()
+  }
+  return def.promise
 };
 
-/*!
- * route based events
- * @returns key object for future reference
- */
-RequestPromise.prototype.on = function(eventName,listener){
-  if (typeof eventName == 'function'){
-    listener = eventName;
-    eventName = "";
+function done(cb, eb) {
+  var p = this.promise; // support 'hot' promises
+  if (cb || eb) {
+    p = p.then(cb, eb)
   }
-  if (!this._eventSubscribers[eventName]) { this._eventSubscribers[eventName]=[]; }
-  var listSize = this._eventSubscribers[eventName].push(function(){
-    listener.apply(this,arguments);
-  });
-  return {eventName:eventName,offset:listSize-1};
-};
-RequestPromise.prototype.off = function(key){
-  if (key && this._eventSubscribers[key.eventName]) {
-    // deleting is intentional to leave gaps in the array,
-    // as splicing causes the offsets to change
-    delete this._eventSubscribers[key.eventName][key.offset];
-  }
-};
-RequestPromise.prototype.emit = function(eventName){
-  var _this = this;
-  if (this._eventSubscribers[eventName]) {
-    var emitArgs = Array.prototype.slice.call(arguments, 1);
-    this._eventSubscribers[eventName].forEach(function(fn){
-      fn.apply(_this, emitArgs)
-    });
-  }
+  p.then(null, function (reason) {
+    setTimeout(function () {
+      throw reason
+    }, 0);
+  })
 };
 });
 
