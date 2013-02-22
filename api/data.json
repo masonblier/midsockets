@@ -18,11 +18,29 @@
             "fors": {},
             "namespaces": {}
         },
-        "../../midsockets/lib/promises/deferred_response.js": {
-            "name": "../../midsockets/lib/promises/deferred_response.js",
+        "../../midsockets/lib/promises/deferred.js": {
+            "name": "../../midsockets/lib/promises/deferred.js",
             "modules": {
                 "Promises": 1
             },
+            "classes": {
+                "Deferred": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/promises/deferred_request.js": {
+            "name": "../../midsockets/lib/promises/deferred_request.js",
+            "modules": {},
+            "classes": {
+                "DeferredRequest": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        },
+        "../../midsockets/lib/promises/deferred_response.js": {
+            "name": "../../midsockets/lib/promises/deferred_response.js",
+            "modules": {},
             "classes": {
                 "DeferredResponse": 1
             },
@@ -35,15 +53,6 @@
             "classes": {
                 "RequestGhost": 1,
                 "RequestClient": 1
-            },
-            "fors": {},
-            "namespaces": {}
-        },
-        "../../midsockets/lib/promises/request_promise.js": {
-            "name": "../../midsockets/lib/promises/request_promise.js",
-            "modules": {},
-            "classes": {
-                "RequestPromise": 1
             },
             "fors": {},
             "namespaces": {}
@@ -129,10 +138,11 @@
             },
             "classes": {
                 "Middleware": 1,
+                "Deferred": 1,
+                "DeferredRequest": 1,
                 "DeferredResponse": 1,
                 "RequestGhost": 1,
                 "RequestClient": 1,
-                "RequestPromise": 1,
                 "App": 1,
                 "Events": 1,
                 "Inheritance": 1,
@@ -152,19 +162,20 @@
             "name": "Promises",
             "submodules": {},
             "classes": {
+                "Deferred": 1,
+                "DeferredRequest": 1,
                 "DeferredResponse": 1,
                 "RequestGhost": 1,
-                "RequestClient": 1,
-                "RequestPromise": 1
+                "RequestClient": 1
             },
             "fors": {},
             "is_submodule": 1,
             "namespaces": {},
             "module": "midsockets",
             "namespace": "",
-            "file": "../../midsockets/lib/promises/request_promise.js",
-            "line": 27,
-            "description": "The class of the object passed as `res` to Router event handlers. When the\ndeferredResponse is resolved, the data is sent to the corresponding RequestPromise\non the client."
+            "file": "../../midsockets/lib/promises/request_client.js",
+            "line": 44,
+            "description": "An promises/a compatable promise implementation\nbased on https://github.com/ForbesLindesay/promises-a"
         }
     },
     "classes": {
@@ -181,6 +192,38 @@
             "file": "../../midsockets/lib/middleware/logger.js",
             "line": 5,
             "static": 1
+        },
+        "Deferred": {
+            "name": "Deferred",
+            "shortname": "Deferred",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "submodule": "Promises",
+            "namespace": "",
+            "file": "../../midsockets/lib/promises/deferred.js",
+            "line": 6,
+            "description": "An promises/a compatable promise implementation\nbased on https://github.com/ForbesLindesay/promises-a",
+            "is_constructor": 1
+        },
+        "DeferredRequest": {
+            "name": "DeferredRequest",
+            "shortname": "DeferredRequest",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "module": "midsockets",
+            "submodule": "Promises",
+            "namespace": "",
+            "file": "../../midsockets/lib/promises/deferred_request.js",
+            "line": 24,
+            "description": "A Deferred object which wraps requests. The return result of\nthe request methods is the promise created by a DeferredRequest.",
+            "is_constructor": 1
         },
         "DeferredResponse": {
             "name": "DeferredResponse",
@@ -281,22 +324,6 @@
                     ]
                 }
             ]
-        },
-        "RequestPromise": {
-            "name": "RequestPromise",
-            "shortname": "RequestPromise",
-            "classitems": [],
-            "plugins": [],
-            "extensions": [],
-            "plugin_for": [],
-            "extension_for": [],
-            "module": "midsockets",
-            "submodule": "Promises",
-            "namespace": "",
-            "file": "../../midsockets/lib/promises/request_promise.js",
-            "line": 27,
-            "description": "A promise-like object which is returned by requests made\nby a RequestClient. If the response is not resolved immediately,\nthe server may emit events back over midsockets to this object.",
-            "is_constructor": 1
         },
         "App": {
             "name": "App",

@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;request_promise.js - midsockets</title>
+    <title>..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;deferred_request.js - midsockets</title>
     <link rel="stylesheet" href="http:&#x2F;&#x2F;yui.yahooapis.com&#x2F;3.8.0pr2&#x2F;build&#x2F;cssgrids&#x2F;cssgrids-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/vendor/prettify/prettify-min.css">
     <link rel="stylesheet" href="..&#x2F;assets/css/main.css" id="site_styles">
@@ -43,6 +43,10 @@
             
                 <li><a href="..&#x2F;classes/App.html">App</a></li>
             
+                <li><a href="..&#x2F;classes/Deferred.html">Deferred</a></li>
+            
+                <li><a href="..&#x2F;classes/DeferredRequest.html">DeferredRequest</a></li>
+            
                 <li><a href="..&#x2F;classes/DeferredResponse.html">DeferredResponse</a></li>
             
                 <li><a href="..&#x2F;classes/Events.html">Events</a></li>
@@ -56,8 +60,6 @@
                 <li><a href="..&#x2F;classes/RequestClient.html">RequestClient</a></li>
             
                 <li><a href="..&#x2F;classes/RequestGhost.html">RequestGhost</a></li>
-            
-                <li><a href="..&#x2F;classes/RequestPromise.html">RequestPromise</a></li>
             
                 <li><a href="..&#x2F;classes/Router.html">Router</a></li>
             
@@ -110,10 +112,14 @@
             <div class="apidocs">
                 <div id="docs-main">
                     <div class="content">
-                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;request_promise.js</h1>
+                        <h1 class="file-heading">File: ..&#x2F;..&#x2F;midsockets&#x2F;lib&#x2F;promises&#x2F;deferred_request.js</h1>
 
 <div class="file">
     <pre class="code prettyprint linenums">
+var Utils = require(&#x27;..&#x2F;utils&#x27;);
+var Events = require(&#x27;..&#x2F;events&#x27;);
+var Deferred = require(&#x27;.&#x2F;deferred&#x27;);
+
 &#x2F;**
   @module midsockets
   @submodule Promises
@@ -126,89 +132,32 @@ var eventedMiddleware = function(_this){
       emitArgs.unshift(req.eventName);
       _this.emit.apply(_this,emitArgs);
     } else if (req.err) {
-      _this._promise.err = req.err;
-      _this._promise.rejecteds.forEach(function(rejected){
-        rejected(_this._promise.err);
-      });
+      _this.reject(req.err);
     } else {
-      _this._promise.val = req.data;
-      _this._promise.fulfilled = true;
-      _this._promise.fulfilleds.forEach(function(fulfilled){
-        fulfilled(_this._promise.val);
-      }); 
+      _this.fulfill(req.data);
     }
   };
 };
 
 &#x2F;**
-  A promise-like object which is returned by requests made
-  by a RequestClient. If the response is not resolved immediately,
-  the server may emit events back over midsockets to this object.
+  A Deferred object which wraps requests. The return result of
+  the request methods is the promise created by a DeferredRequest.
 
-  @class RequestPromise
+  @class DeferredRequest
   @constructor
 **&#x2F;
 
-function RequestPromise() {
-  this._eventSubscribers = {};
-  this._promise = {fulfilleds: [], rejecteds: []};
+function DeferredRequest() {
+  DeferredRequest.__super__.constructor.apply(this, arguments);
+  this.emit = Events.prototype.emit.bind(this);
+  this.promise.on = Events.prototype.on.bind(this);
+  this.promise.off = Events.prototype.off.bind(this);
   this.handle = eventedMiddleware(this);
-}
-
-module.exports = RequestPromise;
-
-&#x2F;*!
- * promises&#x2F;a methods are emitted on request termination.
- *&#x2F;
-RequestPromise.prototype.then = function(fulfilled,rejected) {
-  throw new Error(&quot;not yet implemented&quot;);
-  return this;
-};
-RequestPromise.prototype.done = function(fulfilled,rejected) {
-  if (!this._promise.done) {
-    if (fulfilled) { this._promise.fulfilleds.push(fulfilled); }
-    if (rejected) { this._promise.rejecteds.push(rejected); }
-  } else {
-    if (this._promise.fulfilled &amp;&amp; fulfilled) {
-      fulfilled(this._promise.val);
-    } else if (rejected) {
-      rejected(this._promise.err);
-    }
-  }
-  return this;
 };
 
-&#x2F;*!
- * route based events
- * @returns key object for future reference
- *&#x2F;
-RequestPromise.prototype.on = function(eventName,listener){
-  if (typeof eventName == &#x27;function&#x27;){
-    listener = eventName;
-    eventName = &quot;&quot;;
-  }
-  if (!this._eventSubscribers[eventName]) { this._eventSubscribers[eventName]=[]; }
-  var listSize = this._eventSubscribers[eventName].push(function(){
-    listener.apply(this,arguments);
-  });
-  return {eventName:eventName,offset:listSize-1};
-};
-RequestPromise.prototype.off = function(key){
-  if (key &amp;&amp; this._eventSubscribers[key.eventName]) {
-    &#x2F;&#x2F; deleting is intentional to leave gaps in the array,
-    &#x2F;&#x2F; as splicing causes the offsets to change
-    delete this._eventSubscribers[key.eventName][key.offset];
-  }
-};
-RequestPromise.prototype.emit = function(eventName){
-  var _this = this;
-  if (this._eventSubscribers[eventName]) {
-    var emitArgs = Array.prototype.slice.call(arguments, 1);
-    this._eventSubscribers[eventName].forEach(function(fn){
-      fn.apply(_this, emitArgs)
-    });
-  }
-};
+Utils.extends(DeferredRequest, Deferred);
+
+module.exports = DeferredRequest;
     </pre>
 </div>
 

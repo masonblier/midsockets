@@ -43,6 +43,10 @@
             
                 <li><a href="..&#x2F;classes/App.html">App</a></li>
             
+                <li><a href="..&#x2F;classes/Deferred.html">Deferred</a></li>
+            
+                <li><a href="..&#x2F;classes/DeferredRequest.html">DeferredRequest</a></li>
+            
                 <li><a href="..&#x2F;classes/DeferredResponse.html">DeferredResponse</a></li>
             
                 <li><a href="..&#x2F;classes/Events.html">Events</a></li>
@@ -56,8 +60,6 @@
                 <li><a href="..&#x2F;classes/RequestClient.html">RequestClient</a></li>
             
                 <li><a href="..&#x2F;classes/RequestGhost.html">RequestGhost</a></li>
-            
-                <li><a href="..&#x2F;classes/RequestPromise.html">RequestPromise</a></li>
             
                 <li><a href="..&#x2F;classes/Router.html">Router</a></li>
             
@@ -114,7 +116,7 @@
 
 <div class="file">
     <pre class="code prettyprint linenums">
-var RequestPromise = require(&#x27;.&#x2F;request_promise&#x27;)
+var DeferredRequest = require(&#x27;.&#x2F;deferred_request&#x27;)
 
 &#x2F;**
   @module midsockets
@@ -203,11 +205,11 @@ module.exports = (function(){
   };
 
   RequestClient.prototype.post = function(route,data){
-    var rp = new RequestPromise();
+    var def = new DeferredRequest();
     var req_id = uuid.v1();
-    this._requestPromises[req_id] = rp;
+    this._requestPromises[req_id] = def;
     this.app._out({route:route,data:data,req_id:req_id},{});
-    return rp;
+    return def.promise;
   };
 
   RequestClient.prototype.requester = function(route){

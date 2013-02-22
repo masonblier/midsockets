@@ -43,6 +43,10 @@
             
                 <li><a href="..&#x2F;classes/App.html">App</a></li>
             
+                <li><a href="..&#x2F;classes/Deferred.html">Deferred</a></li>
+            
+                <li><a href="..&#x2F;classes/DeferredRequest.html">DeferredRequest</a></li>
+            
                 <li><a href="..&#x2F;classes/DeferredResponse.html">DeferredResponse</a></li>
             
                 <li><a href="..&#x2F;classes/Events.html">Events</a></li>
@@ -56,8 +60,6 @@
                 <li><a href="..&#x2F;classes/RequestClient.html">RequestClient</a></li>
             
                 <li><a href="..&#x2F;classes/RequestGhost.html">RequestGhost</a></li>
-            
-                <li><a href="..&#x2F;classes/RequestPromise.html">RequestPromise</a></li>
             
                 <li><a href="..&#x2F;classes/Router.html">Router</a></li>
             
@@ -129,8 +131,10 @@ module.exports = Events;
 
 Events.prototype.on = function(key, fn) {
   if (this._eventSubscribers===undefined) { this._eventSubscribers = {}; }
+  if (!fn &amp;&amp; typeof key === &#x27;function&#x27;) { fn = key; key = &quot;&quot;; }
   if (!this._eventSubscribers[key]) { this._eventSubscribers[key]=[]; }
   this._eventSubscribers[key].push(fn);
+  return this;
 };
 
 Events.prototype.off = function(key, fn) {
@@ -140,6 +144,7 @@ Events.prototype.off = function(key, fn) {
   if (removalIndex &gt;= 0) {
     this._eventSubscribers[key].splice(removalIndex, 1);
   }
+  return this;
 };
 
 Events.prototype.emit = function(key)  {
@@ -150,6 +155,7 @@ Events.prototype.emit = function(key)  {
       fn.apply(this, emitArgs)
     });
   }
+  return this;
 };
     </pre>
 </div>

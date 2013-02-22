@@ -2,6 +2,8 @@ YUI.add("yuidoc-meta", function(Y) {
    Y.YUIDoc = { meta: {
     "classes": [
         "App",
+        "Deferred",
+        "DeferredRequest",
         "DeferredResponse",
         "Events",
         "Inheritance",
@@ -9,7 +11,6 @@ YUI.add("yuidoc-meta", function(Y) {
         "MiddlewarePrototype",
         "RequestClient",
         "RequestGhost",
-        "RequestPromise",
         "Router",
         "SockjsClient",
         "SockjsServer",
@@ -27,7 +28,7 @@ YUI.add("yuidoc-meta", function(Y) {
         {
             "displayName": "Promises",
             "name": "Promises",
-            "description": "The class of the object passed as `res` to Router event handlers. When the\ndeferredResponse is resolved, the data is sent to the corresponding RequestPromise\non the client."
+            "description": "An promises/a compatable promise implementation\nbased on https://github.com/ForbesLindesay/promises-a"
         }
     ]
 } };
