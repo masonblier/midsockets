@@ -464,8 +464,8 @@ Events.prototype.off = function(key, fn) {
 };
 
 Events.prototype.emit = function(key)  {
-  if (this._eventSubscribers===undefined) { this._eventSubscribers = {} }
-  if (this._eventSubscribers[key]) {
+  if (this._eventSubscribers===undefined) { return; }
+  if (this._eventSubscribers.hasOwnProperty(key)) {
     var emitArgs = Array.prototype.slice.call(arguments, 1);
     this._eventSubscribers[key].forEach(function(fn){
       fn.apply(this, emitArgs)
@@ -890,12 +890,11 @@ var eventedMiddleware = function(_this){
     if (typeof req.eventName == 'string') {
       var emitArgs = req.data.args;
       emitArgs.unshift(req.eventName);
-      _this.emit.apply(_this,emitArgs);
+      _this.emit.apply(null, emitArgs);
     } else if (req.err) {
       _this.reject(req.err);
     } else if (req.nothing) {
-      console.log("subscribed?",_this.subscribed)
-      // do nothign
+      // do nothing
     } else {
       _this.fulfill(req.data);
     }
@@ -916,9 +915,10 @@ function DeferredRequest() {
   this.promise.on = Events.prototype.on.bind(this.promise);
   this.promise.off = Events.prototype.off.bind(this.promise);
   this.handle = eventedMiddleware(this);
+  var _this = this;
   this.timeout = setTimeout(function(){
-    if (!this.resolved && !this.subscribed) {
-      this.reject("request timed out after "+DeferredRequest.timeout_seconds+" seconds.")
+    if (!_this.resolved && !_this.subscribed) {
+      _this.reject("request timed out after "+DeferredRequest.timeout_seconds+" seconds.")
     }
   }.bind(this), DeferredRequest.timeout_seconds * 1000)
 };
