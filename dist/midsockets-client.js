@@ -22,7 +22,48 @@ window.midsockets = (function(){
   return midsockets;
 
 })();
-},{"./events":2,"./utils":3,"./promises/request_client":4,"./app":5,"./adapters/sockjs-client":6}],7:[function(require,module,exports){// shim for using process in browser
+},{"./events":2,"./utils":3,"./app":4,"./promises/request_client":5,"./adapters/sockjs-client":6}],2:[function(require,module,exports){/**
+  A small implementation of an Event manager. Other classes can extend this without
+  having to call the Events() constructor.
+
+  @class Events
+  @constructor
+**/
+
+function Events() {
+};
+
+module.exports = Events;
+
+Events.prototype.on = function(key, fn) {
+  if (this._eventSubscribers===undefined) { this._eventSubscribers = {}; }
+  if (typeof key === 'function') { fn = key; key = ""; }
+  if (!this._eventSubscribers[key]) { this._eventSubscribers[key]=[]; }
+  this._eventSubscribers[key].push(fn);
+  return this;
+};
+
+Events.prototype.off = function(key, fn) {
+  if (this._eventSubscribers===undefined) { return; }
+  if (this._eventSubscribers[key]===undefined) { return; }
+  var removalIndex = this._eventSubscribers[key].indexOf(fn);
+  if (removalIndex >= 0) {
+    this._eventSubscribers[key].splice(removalIndex, 1);
+  }
+  return this;
+};
+
+Events.prototype.emit = function(key)  {
+  if (this._eventSubscribers===undefined) { return; }
+  if (this._eventSubscribers.hasOwnProperty(key)) {
+    var emitArgs = Array.prototype.slice.call(arguments, 1);
+    this._eventSubscribers[key].forEach(function(fn){
+      fn.apply(this, emitArgs)
+    });
+  }
+  return this;
+};
+},{}],7:[function(require,module,exports){// shim for using process in browser
 
 var process = module.exports = {};
 
@@ -149,48 +190,7 @@ Utils.log =
   : console.log;
 
 })(require("__browserify_process"))
-},{"__browserify_process":7}],2:[function(require,module,exports){/**
-  A small implementation of an Event manager. Other classes can extend this without
-  having to call the Events() constructor.
-
-  @class Events
-  @constructor
-**/
-
-function Events() {
-};
-
-module.exports = Events;
-
-Events.prototype.on = function(key, fn) {
-  if (this._eventSubscribers===undefined) { this._eventSubscribers = {}; }
-  if (typeof key === 'function') { fn = key; key = ""; }
-  if (!this._eventSubscribers[key]) { this._eventSubscribers[key]=[]; }
-  this._eventSubscribers[key].push(fn);
-  return this;
-};
-
-Events.prototype.off = function(key, fn) {
-  if (this._eventSubscribers===undefined) { return; }
-  if (this._eventSubscribers[key]===undefined) { return; }
-  var removalIndex = this._eventSubscribers[key].indexOf(fn);
-  if (removalIndex >= 0) {
-    this._eventSubscribers[key].splice(removalIndex, 1);
-  }
-  return this;
-};
-
-Events.prototype.emit = function(key)  {
-  if (this._eventSubscribers===undefined) { return; }
-  if (this._eventSubscribers.hasOwnProperty(key)) {
-    var emitArgs = Array.prototype.slice.call(arguments, 1);
-    this._eventSubscribers[key].forEach(function(fn){
-      fn.apply(this, emitArgs)
-    });
-  }
-  return this;
-};
-},{}],5:[function(require,module,exports){var inheritance = require('./inheritance');
+},{"__browserify_process":7}],4:[function(require,module,exports){var inheritance = require('./inheritance');
 var Events = require('./events');
 var MiddlewarePrototype = require('./middleware_prototype');
 var Utils = require('./utils');
@@ -318,7 +318,7 @@ SockjsClient.prototype.requestClient = function(){
   if (arguments.length > 0) { throw new Error("Arguments are not supported for SockjsClient#requestClient"); }
   return new midsockets.RequestClient({app: this});
 };
-},{"../utils":3,"../app":5}],9:[function(require,module,exports){(function(process){/**
+},{"../utils":3,"../app":4}],9:[function(require,module,exports){(function(process){/**
   This becomes the prototype of every middleware function.
   This pattern was taken from the connect middleware.
 
@@ -415,60 +415,7 @@ MiddlewarePrototype.handle = function(req,res,out){
   next();
 };
 })(require("__browserify_process"))
-},{"__browserify_process":7}],10:[function(require,module,exports){var Utils = require('../utils');
-var Events = require('../events');
-var Deferred = require('./deferred');
-
-/**
-  @module midsockets
-  @submodule Promises
-**/
-
-var eventedMiddleware = function(_this){
-  return function(req,res,next){
-    _this.subscribed = req.subscribed;
-    if (typeof req.eventName == 'string') {
-      var emitArgs = req.data.args;
-      emitArgs.unshift(req.eventName);
-      _this.emit.apply(null, emitArgs);
-    } else if (req.err) {
-      _this.reject(req.err);
-    } else if (req.nothing) {
-      // do nothing
-    } else {
-      _this.fulfill(req.data);
-    }
-  };
-};
-
-/**
-  A Deferred object which wraps requests. The return result of
-  the request methods is the promise created by a DeferredRequest.
-
-  @class DeferredRequest
-  @constructor
-**/
-
-function DeferredRequest() {
-  DeferredRequest.__super__.constructor.apply(this, arguments);
-  this.emit = Events.prototype.emit.bind(this.promise);
-  this.promise.on = Events.prototype.on.bind(this.promise);
-  this.promise.off = Events.prototype.off.bind(this.promise);
-  this.handle = eventedMiddleware(this);
-  var _this = this;
-  this.timeout = setTimeout(function(){
-    if (!_this.resolved && !_this.subscribed) {
-      _this.reject("request timed out after "+DeferredRequest.timeout_seconds+" seconds.")
-    }
-  }.bind(this), DeferredRequest.timeout_seconds * 1000)
-};
-
-Utils.extends(DeferredRequest, Deferred);
-
-module.exports = DeferredRequest;
-
-DeferredRequest.timeout_seconds = 5;
-},{"../utils":3,"../events":2,"./deferred":11}],8:[function(require,module,exports){var Utils = require('./utils');
+},{"__browserify_process":7}],8:[function(require,module,exports){var Utils = require('./utils');
 
 /**
   Methods for implementing backbone style inheritance.
@@ -521,7 +468,60 @@ Inheritance.extend = function(protoProps, staticProps) {
 
   return child;
 };
-},{"./utils":3}],11:[function(require,module,exports){/**
+},{"./utils":3}],10:[function(require,module,exports){var Utils = require('../utils');
+var Events = require('../events');
+var Deferred = require('./deferred');
+
+/**
+  @module midsockets
+  @submodule Promises
+**/
+
+var eventedMiddleware = function(_this){
+  return function(req,res,next){
+    _this.subscribed = req.subscribed;
+    if (typeof req.eventName == 'string') {
+      var emitArgs = req.data.args;
+      emitArgs.unshift(req.eventName);
+      _this.emit.apply(null, emitArgs);
+    } else if (req.err) {
+      _this.reject(req.err);
+    } else if (req.nothing) {
+      // do nothing
+    } else {
+      _this.fulfill(req.data);
+    }
+  };
+};
+
+/**
+  A Deferred object which wraps requests. The return result of
+  the request methods is the promise created by a DeferredRequest.
+
+  @class DeferredRequest
+  @constructor
+**/
+
+function DeferredRequest() {
+  DeferredRequest.__super__.constructor.apply(this, arguments);
+  this.emit = Events.prototype.emit.bind(this.promise);
+  this.promise.on = Events.prototype.on.bind(this.promise);
+  this.promise.off = Events.prototype.off.bind(this.promise);
+  this.handle = eventedMiddleware(this);
+  var _this = this;
+  this.timeout = setTimeout(function(){
+    if (!_this.resolved && !_this.subscribed) {
+      _this.reject("request timed out after "+DeferredRequest.timeout_seconds+" seconds.")
+    }
+  }.bind(this), DeferredRequest.timeout_seconds * 1000)
+};
+
+Utils.extends(DeferredRequest, Deferred);
+
+module.exports = DeferredRequest;
+
+DeferredRequest.timeout_seconds = 5;
+},{"../utils":3,"../events":2,"./deferred":11}],11:[function(require,module,exports){/**
   @module midsockets
   @submodule Promises
 **/
@@ -627,7 +627,7 @@ function done(cb, eb) {
     }, 0);
   })
 };
-},{}],4:[function(require,module,exports){var uuid = require('node-uuid');
+},{}],5:[function(require,module,exports){var uuid = require('node-uuid');
 var DeferredRequest = require('./deferred_request')
 
 /**
