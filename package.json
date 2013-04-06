@@ -1,7 +1,7 @@
 {
   "name": "midsockets",
   "description": "middleware and routing for sockjs",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "author": "Mason Blier <mason.blier@gmail.com>",
   "dependencies": {
     "cookie":"latest",
