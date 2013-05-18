@@ -24,7 +24,7 @@ test_promisesA = (callback)->
 
 test_spec = (callback) ->
   test_seperator('spec tests')
-  run_proc './node_modules/.bin/vows', ['--spec','spec/spec-runner.js'], callback
+  run_proc './node_modules/.bin/mocha', ['spec/'], callback
 
 test = () ->
   test_spec test_promisesA

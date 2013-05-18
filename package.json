@@ -1,16 +1,18 @@
 {
   "name": "midsockets",
   "description": "middleware and routing for sockjs",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "author": "Mason Blier <mason.blier@gmail.com>",
   "dependencies": {
     "cookie":"latest",
-    "sockjs":"latest"
+    "sockjs":"latest",
+    "node-uuid":"latest"
   },
   "devDependencies": {
     "browserify":"latest",
-    "vows":"latest",
+    "mocha":"latest",
     "coffee-script":"latest",
+    "should":"latest",
     "promises-aplus-tests":"latest"
   },
   "main": "index",
